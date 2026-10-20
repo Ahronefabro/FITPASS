@@ -18,15 +18,15 @@
                     <small>Place the QR code inside the frame</small>
                 </div>
                 <div id="scanned" class="scanned" hidden>
-                    <span class="material-symbols-outlined">check_circle</span>
-                    <b>QR CODE SCANNED</b>
+                    <span id="scanned-icon" class="material-symbols-outlined">qr_code_scanner</span>
+                    <b id="scanned-title">QR CODE SCANNED</b>
                     <small id="scanned-code"></small>
                 </div>
             </div>
 
             <form id="code-form" class="toolbar" style="margin: 16px 0 0">
                 <input id="code" class="code-input" placeholder="...or type the member code" autocomplete="off">
-                <button class="btn primary">Look up</button>
+                <button class="btn primary">Record</button>
             </form>
         </section>
 
@@ -48,10 +48,8 @@
                 <div><small>VISITS THIS MONTH</small><b id="member-visits">&mdash;</b></div>
             </div>
 
-            <div id="member-actions" class="actions" hidden>
-                <button id="scan-again" class="btn">SCAN AGAIN</button>
-                <button id="confirm" class="btn primary">CHECK IN</button>
-            </div>
+            <div id="member-result" class="scan-result" hidden></div>
+            <p class="grey" style="margin: 12px 0 0; font-size: 12px">First scan checks a member in, the next scan checks them out.</p>
         </section>
     </div>
 @endsection
@@ -59,19 +57,24 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script>
-    const routes = {
-        lookup: @json(route('staff.scanner.lookup')),
-        record: @json(route('staff.scanner.record')),
-    };
+    const record = @json(route('staff.scanner.record'));
     const token = @json(csrf_token());
 
     const el = id => document.getElementById(id);
     const status = el('scan-status');
-    const actions = el('member-actions');
-    const confirmBtn = el('confirm');
+    const result = el('member-result');
 
-    let code = null;
+    // How long the result stays up before the camera takes the next person,
+    // and how long the same code is ignored after it was recorded. Without the
+    // second, a member still holding their code to the camera would be checked
+    // out the moment the camera came back.
+    const SHOW_FOR = 3000;
+    const IGNORE_SAME_CODE_FOR = 10000;
+
+    let busy = false;
     let scanner = null;
+    let last = {code: null, at: 0};
+    let timer = null;
 
     const say = (text, ok = true) => {
         status.textContent = text;
@@ -88,15 +91,13 @@
         return data;
     });
 
-    // Blank member card, camera live again, ready for the next person.
-    function reset() {
-        code = null;
-        actions.hidden = true;
+    // Camera frame back and live, ready for the next person. The member card
+    // keeps showing who was scanned last until someone new is.
+    function ready() {
+        busy = false;
         el('frame').hidden = false;
         el('scanned').hidden = true;
-        ['name', 'time', 'membership', 'visits'].forEach(f => el('member-' + f).innerHTML = '&mdash;');
-        el('member-meta').textContent = 'Scan a member QR code to see their details.';
-        el('member-avatar').classList.remove('found');
+        say('Ready to scan');
 
         try {
             scanner?.resume();
@@ -106,6 +107,8 @@
     }
 
     function fill(member) {
+        const out = member.action === 'Check Out';
+
         el('member-name').textContent = member.name;
         el('member-meta').textContent = member.meta;
         el('member-time').textContent = member.time;
@@ -113,41 +116,54 @@
         el('member-membership').textContent = member.membership;
         el('member-visits').textContent = member.visits;
         el('member-avatar').classList.add('found');
-        confirmBtn.textContent = member.action.toUpperCase();
-        confirmBtn.classList.toggle('warn', member.action === 'Check Out');
-        actions.hidden = false;
+
+        result.textContent = out ? 'CHECKED OUT' : 'CHECKED IN';
+        result.className = 'scan-result ' + (out ? 'out' : 'in');
+        result.hidden = false;
+
+        el('scanned-icon').textContent = out ? 'logout' : 'login';
+        el('scanned-title').textContent = out ? 'CHECKED OUT' : 'CHECKED IN';
     }
 
-    function lookup(value) {
-        code = value;
-        say('Looking up...');
+    // Each scan records at once: in if they are out, out if they are in.
+    function scan(value) {
+        const now = Date.now();
+        if (busy || (value === last.code && now - last.at < IGNORE_SAME_CODE_FOR)) {
+            try { scanner?.resume(); } catch (error) {}
+            return;
+        }
+
+        busy = true;
+        clearTimeout(timer);
+        say('Recording...');
         el('frame').hidden = true;
         el('scanned').hidden = false;
+        el('scanned-icon').textContent = 'qr_code_scanner';
+        el('scanned-title').textContent = 'QR CODE SCANNED';
         el('scanned-code').textContent = value;
 
-        post(routes.lookup, {code: value})
-            .then(member => { fill(member); say('Member found'); })
-            .catch(error => { say(error.message, false); reset(); });
+        post(record, {code: value})
+            .then(member => {
+                last = {code: value, at: Date.now()};
+                fill(member);
+                say(member.message);
+            })
+            .catch(error => {
+                result.hidden = true;
+                say(error.message, false);
+            })
+            .finally(() => timer = setTimeout(ready, SHOW_FOR));
     }
-
-    confirmBtn.addEventListener('click', () => {
-        if (!code) return;
-        confirmBtn.disabled = true;
-
-        post(routes.record, {code})
-            .then(result => { say(result.message); reset(); })
-            .catch(error => say(error.message, false))
-            .finally(() => confirmBtn.disabled = false);
-    });
-
-    el('scan-again').addEventListener('click', reset);
 
     el('code-form').addEventListener('submit', event => {
         event.preventDefault();
         const value = el('code').value.trim();
         if (!value) return;
         el('code').value = '';
-        lookup(value);
+        // A typed code is deliberate, so it is never ignored as a repeat.
+        last = {code: null, at: 0};
+        scanner?.pause(true);
+        scan(value);
     });
 
     // The camera is a convenience: if it is missing or blocked, the code field still works.
@@ -155,7 +171,7 @@
         scanner = new Html5Qrcode('reader');
         scanner.start({facingMode: 'environment'}, {fps: 10, qrbox: 220}, text => {
             scanner.pause(true);
-            lookup(text);
+            scan(text);
         }).catch(() => {
             scanner = null;
             el('reader').innerHTML = '<p class="center grey">Camera unavailable. Type the member code below instead.</p>';

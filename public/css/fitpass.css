@@ -112,12 +112,44 @@ table.plain th { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 /* Dialogs and forms */
 dialog { width: min(420px, 92vw); padding: 24px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; color: #fff; }
 dialog::backdrop { background: rgba(0, 0, 0, .6); }
+
+/* Email change verification */
+.verify-box { padding: 16px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; text-align: center; }
+.verify-box > .material-symbols-outlined { font-size: 40px; color: var(--green); }
+.verify-box p { margin: 8px 0 14px; color: var(--dim); font-size: 13px; line-height: 1.5; }
+.verify-box b { color: #fff; overflow-wrap: anywhere; }
+.code-entry { display: block; width: 100%; margin-bottom: 12px; padding: 14px; background: var(--panel); border: 1px solid rgba(255, 255, 255, .24); border-radius: 8px; color: #fff; font-size: 24px; font-weight: 700; letter-spacing: 10px; text-align: center; outline: 0; }
+.code-entry:focus { border-color: var(--green); }
+.verify-links { display: flex; justify-content: center; gap: 18px; margin-top: 12px; }
+.link { padding: 0; background: none; border: 0; color: var(--green); font-size: 12px; font-weight: 600; cursor: pointer; }
+.link:hover { text-decoration: underline; }
+
+/* Log out confirmation */
+dialog.logout { width: min(380px, 92vw); padding: 32px 28px 24px; border-top: 3px solid var(--red); text-align: center; }
+dialog.logout[open] { animation: pop .18s ease-out; }
+dialog.logout::backdrop { background: rgba(0, 0, 0, .7); backdrop-filter: blur(3px); }
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.96); } }
+.logout-icon { display: inline-grid; place-items: center; width: 64px; height: 64px; border: 2px solid var(--red); border-radius: 50%; background: rgba(255, 82, 82, .12); color: var(--red); }
+.logout-icon .material-symbols-outlined { font-size: 32px; }
+dialog.logout h2 { margin: 16px 0 8px; color: #fff; font-size: 20px; font-weight: 900; letter-spacing: 2px; }
+dialog.logout p { margin: 0 0 18px; color: var(--grey); font-size: 13px; line-height: 1.5; }
+.logout-who { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; text-align: left; font-size: 12px; }
+.logout-who b { display: block; color: #fff; }
+.logout-who small { color: var(--grey); }
+.logout-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.logout-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 12px; font-weight: 700; letter-spacing: 1px; }
+.logout-actions .btn .material-symbols-outlined { font-size: 18px; }
+.btn.danger { background: rgba(255, 82, 82, .14); border-color: var(--red); color: var(--red); }
+.btn.danger:hover { background: var(--red); color: #000; }
 dialog h2 { margin-bottom: 18px; color: var(--green); letter-spacing: 1.2px; }
 label { display: block; margin-bottom: 14px; color: var(--grey); font-size: 12px; }
 label input, label select { display: block; width: 100%; margin-top: 6px; padding: 12px; background: var(--panel); border: 1px solid rgba(255, 255, 255, .24); border-radius: 8px; color: #fff; outline: 0; }
 label input:focus, label select:focus { border-color: var(--green); }
 .actions { display: flex; justify-content: flex-end; gap: 8px; }
 .error { margin: 0 0 12px; color: var(--red); font-size: 12px; }
+.notice { margin: 0 0 12px; color: var(--green); font-size: 12px; }
+.user .me { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; border-radius: 6px; color: inherit; text-decoration: none; }
+.user .me:hover { background: var(--line); }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); padding: 12px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; font-size: 12px; animation: toast 3s forwards; }
 @keyframes toast { 0%, 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 
@@ -257,6 +289,9 @@ code { padding: 2px 6px; background: #1E1E1E; border-radius: 4px; color: var(--s
 .member-head { align-items: center; gap: 14px; margin-bottom: 16px; }
 .member-head .avatar { width: 52px; height: 52px; }
 .member-head .avatar.found { background: #294A31; color: var(--green); }
+.scan-result { margin-top: 16px; padding: 14px; border: 1px solid currentColor; border-radius: 8px; background: color-mix(in srgb, currentColor 12%, transparent); font-size: 16px; font-weight: 900; letter-spacing: 2px; text-align: center; }
+.scan-result.in { color: var(--green); }
+.scan-result.out { color: var(--orange); }
 .member-head .avatar .material-symbols-outlined { font-size: 28px; }
 .member-head b { font-size: 16px; }
 .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }

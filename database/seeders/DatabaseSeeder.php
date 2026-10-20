@@ -16,7 +16,8 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // A login for each portal. Change the passwords before going live.
+        // A login for each portal. Change the email and password on the My
+        // Account page before going live.
         $this->account('owner@fitpass.test', 'Super Admin', 'admin', 'Owner');
         $this->account('staff@fitpass.test', 'Front Desk Staff', 'staff', 'Staff');
 
@@ -49,9 +50,17 @@ class DatabaseSeeder extends Seeder
 
     private function account(string $email, string $name, string $username, string $role): void
     {
-        User::firstOrNew(['email' => $email])->forceFill([
+        // Found by username, and only filled in when new: running the seeder
+        // again must not undo an email or password someone has since changed.
+        $user = User::firstOrNew(['username' => $username]);
+
+        if ($user->exists) {
+            return;
+        }
+
+        $user->forceFill([
             'name' => $name,
-            'username' => $username,
+            'email' => $email,
             'role' => $role,
             'password' => Hash::make('password'),
         ])->save();

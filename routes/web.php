@@ -1,9 +1,11 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Staff\CheckInController as StaffCheckInController;
 use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
 use App\Http\Controllers\Staff\ManualTimeController;
@@ -21,6 +23,11 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'show'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+
+    Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
+    Route::post('/forgot-password', [PasswordResetController::class, 'email'])->middleware('throttle:5,1')->name('password.email');
+    Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
+    Route::post('/reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:5,1')->name('password.update');
 });
 
 // The staff portal used to have a sign-in page of its own. Keep the old url
@@ -30,6 +37,16 @@ Route::redirect('/staff/login', '/login');
 // Outside the portal groups, so anyone signed in can sign out whatever their
 // role has since become.
 Route::middleware('auth')->post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Every role manages its own email and password from the same page.
+Route::middleware('auth')->group(function () {
+    Route::get('/account', [AccountController::class, 'edit'])->name('account');
+    Route::put('/account/email', [AccountController::class, 'updateEmail'])->middleware('throttle:5,1')->name('account.email');
+    Route::post('/account/email/verify', [AccountController::class, 'verifyEmail'])->middleware('throttle:10,1')->name('account.email.verify');
+    Route::post('/account/email/resend', [AccountController::class, 'resendCode'])->middleware('throttle:3,1')->name('account.email.resend');
+    Route::delete('/account/email/pending', [AccountController::class, 'cancelEmail'])->name('account.email.cancel');
+    Route::put('/account/password', [AccountController::class, 'updatePassword'])->middleware('throttle:5,1')->name('account.password');
+});
 
 // ---------------------------------------------------------------------
 // Owner portal
@@ -79,7 +96,6 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::post('/notifications/read', [NotificationController::class, 'markAllRead'])->name('notifications.read');
 
         Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner');
-        Route::post('/scanner/lookup', [ScannerController::class, 'lookup'])->name('scanner.lookup');
         Route::post('/scanner/record', [ScannerController::class, 'store'])->name('scanner.record');
     });
 });

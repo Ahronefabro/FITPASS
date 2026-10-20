@@ -17,11 +17,16 @@ class ScannerController extends Controller
         return view('staff.scanner');
     }
 
-    /** Turn a scanned code into the member card the page shows. */
-    public function lookup(Request $request)
+    /**
+     * A scan records straight away, no confirm step: the first scan checks the
+     * member in, the next one checks them out. Answers with the member card
+     * and what was recorded.
+     */
+    public function store(Request $request)
     {
         $member = $this->find($request);
         $action = $member->openCheckIn() ? 'Check Out' : 'Check In';
+        $message = $this->logAttendance($member, $action, 'QR Code', 'code');
 
         return response()->json([
             'name' => mb_strtoupper($member->name),
@@ -31,17 +36,7 @@ class ScannerController extends Controller
             'membership' => mb_strtoupper($member->status),
             'visits' => (string) $member->visits_this_month,
             'action' => $action,
-        ]);
-    }
-
-    /** Confirm the scan: the next event is whichever one the member is due. */
-    public function store(Request $request)
-    {
-        $member = $this->find($request);
-        $action = $member->openCheckIn() ? 'Check Out' : 'Check In';
-
-        return response()->json([
-            'message' => $this->logAttendance($member, $action, 'QR Code', 'code'),
+            'message' => $message,
         ]);
     }
 
