@@ -44,19 +44,18 @@
                 <div id="search-results" class="results" hidden></div>
             </div>
             <div class="user">
-                <a class="me" href="{{ route('account') }}" title="My account">
-                    <span class="avatar"><span class="material-symbols-outlined">person</span></span>
-                    <div><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->role }}</small></div>
-                </a>
-                <button class="icon-btn" title="Log out" data-open="logout-dialog"><span class="material-symbols-outlined">logout</span></button>
+                <span class="avatar"><span class="material-symbols-outlined">person</span></span>
+                <div><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->role }}</small></div>
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button class="icon-btn" title="Log out"><span class="material-symbols-outlined">logout</span></button>
+                </form>
             </div>
         </header>
 
         <main class="content">@yield('content')</main>
     </div>
 </div>
-
-@include('partials.logout-dialog')
 
 @if (session('status'))
     <div class="toast">{{ session('status') }}</div>
@@ -83,12 +82,6 @@
         if (e.key === 'Enter' && matches().length) location.href = matches()[0].url;
     });
 
-    // A click on the dimmed backdrop lands on the dialog itself, outside its box.
-    const outside = e => {
-        const box = e.target.getBoundingClientRect();
-        return e.clientX < box.left || e.clientX > box.right || e.clientY < box.top || e.clientY > box.bottom;
-    };
-
     // Close dropdowns on outside click; open and close dialogs.
     document.addEventListener('click', e => {
         if (!e.target.closest('.search')) results.hidden = true;
@@ -96,7 +89,6 @@
         const opener = e.target.closest('[data-open]');
         if (opener) document.getElementById(opener.dataset.open).showModal();
         if (e.target.closest('[data-close]')) e.target.closest('dialog').close();
-        if (e.target.matches('dialog.logout') && outside(e)) e.target.close();
     });
 
     // Forms with data-confirm ask before submitting.
@@ -105,7 +97,7 @@
     });
 
     @if ($errors->any())
-        document.querySelector('dialog:not(.logout)')?.showModal();
+        document.querySelector('dialog')?.showModal();
     @endif
 </script>
 </body>
