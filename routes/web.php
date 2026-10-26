@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\DashboardController;
@@ -33,9 +34,15 @@ Route::middleware('guest')->group(function () {
 // working for anyone who bookmarked it.
 Route::redirect('/staff/login', '/login');
 
-// Outside the portal groups, so anyone signed in can sign out whatever their
-// role has since become.
-Route::middleware('auth')->post('/logout', [AuthController::class, 'logout'])->name('logout');
+// Outside the portal groups, so anyone signed in can sign out, and manage
+// their own account, whatever their role has since become.
+Route::middleware('auth')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
+    Route::patch('/account/username', [AccountController::class, 'updateUsername'])->name('account.username');
+    Route::patch('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');
+});
 
 // ---------------------------------------------------------------------
 // Owner portal

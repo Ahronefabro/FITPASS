@@ -43,11 +43,21 @@
                 <input id="page-search" type="search" placeholder="Search pages..." autocomplete="off">
                 <div id="search-results" class="results" hidden></div>
             </div>
-            <div class="user">
-                <span class="avatar"><span class="material-symbols-outlined">person</span></span>
-                <div><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->role }}</small></div>
-                <button class="icon-btn" title="Log out" data-open="logout-dialog"><span class="material-symbols-outlined">logout</span></button>
-            </div>
+            <details class="menu user-menu">
+                <summary class="user">
+                    <span class="avatar"><span class="material-symbols-outlined">person</span></span>
+                    <div><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->role }}</small></div>
+                    <span class="material-symbols-outlined">expand_more</span>
+                </summary>
+                <div class="user-dropdown">
+                    <a href="{{ route('account.edit') }}">
+                        <span class="material-symbols-outlined">manage_accounts</span>Account Settings
+                    </a>
+                    <button type="button" data-open="logout-dialog">
+                        <span class="material-symbols-outlined">logout</span>Log out
+                    </button>
+                </div>
+            </details>
         </header>
 
         <main class="content">@yield('content')</main>
