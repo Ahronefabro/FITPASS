@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../models/member.dart';
@@ -40,7 +42,8 @@ class _DashboardState extends State<Dashboard>
   }
 
   /// Fetches the member again, e.g. to see staff confirm a pending sign-up.
-  Future<void> _refresh() async {
+  /// [quiet] skips the error message, for the automatic checks.
+  Future<void> _refresh({bool quiet = false}) async {
     try {
       final member = await Api.me();
       if (!mounted) return;
@@ -58,6 +61,7 @@ class _DashboardState extends State<Dashboard>
         );
         return;
       }
+      if (quiet) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(e.message)));
     }
@@ -83,6 +87,7 @@ class _DashboardState extends State<Dashboard>
                     key: ValueKey(_refreshCount),
                     member: _member,
                     onRefresh: _refresh,
+                    onPendingCheck: () => _refresh(quiet: true),
                   ),
                   const HistoryTab(),
                   MembershipTab(member: _member, onRefresh: _refresh),
@@ -153,7 +158,15 @@ class HomeTab extends StatefulWidget {
   final Member member;
   final Future<void> Function() onRefresh;
 
-  const HomeTab({super.key, required this.member, required this.onRefresh});
+  /// Checks quietly whether staff have confirmed a pending sign-up.
+  final Future<void> Function() onPendingCheck;
+
+  const HomeTab({
+    super.key,
+    required this.member,
+    required this.onRefresh,
+    required this.onPendingCheck,
+  });
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -164,9 +177,56 @@ class _HomeTabState extends State<HomeTab> {
   static const _amber = Color(0xFFE0A22B);
   static const _cardColor = Color(0xFF1C1C1C);
 
-  late final Future<CheckInRecord?> _latest = widget.member.isPending
-      ? Future.value(null)
-      : Api.latestCheckIn();
+  /// How often the tab asks the server for news, so a scan at the front desk
+  /// shows on the phone within seconds.
+  static const _pollEvery = Duration(seconds: 10);
+
+  Timer? _timer;
+  CheckInRecord? _latest;
+  bool _loaded = false;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // A pending check rebuilds this tab, so it only ever runs on the timer;
+    // running it here as well would rebuild the tab over and over.
+    if (!widget.member.isPending) _poll();
+    _timer = Timer.periodic(_pollEvery, (_) => _poll());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _poll() async {
+    if (widget.member.isPending) {
+      await widget.onPendingCheck();
+      return;
+    }
+
+    try {
+      final latest = await Api.latestCheckIn();
+      if (!mounted) return;
+      setState(() {
+        _latest = latest;
+        _loaded = true;
+        _failed = false;
+      });
+    } on ApiException {
+      if (!mounted) return;
+      // Keeps showing the last visit it knew; the next check tries again.
+      setState(() => _failed = !_loaded);
+    }
+  }
+
+  String _formatDuration(Duration d) {
+    final hours = d.inHours;
+    final minutes = (d.inMinutes % 60).toString().padLeft(2, '0');
+    return hours == 0 ? '${d.inMinutes}m' : '${hours}h ${minutes}m';
+  }
 
   static const _months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -337,26 +397,27 @@ class _HomeTabState extends State<HomeTab> {
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: FutureBuilder<CheckInRecord?>(
-        future: _latest,
-        builder: (context, snapshot) {
+      child: Builder(
+        builder: (context) {
           var icon = Icons.history;
           var color = Colors.white38;
           var title = 'Latest visit';
           final String detail;
 
-          final visit = snapshot.data;
-          if (snapshot.connectionState != ConnectionState.done) {
-            detail = 'Loading…';
-          } else if (snapshot.hasError) {
+          final visit = _latest;
+          if (_failed) {
             icon = Icons.error_outline;
             detail = 'Could not load your latest check-in';
+          } else if (!_loaded) {
+            detail = 'Loading…';
           } else if (visit == null) {
             detail = 'No check-ins yet';
           } else if (visit.timeOut == null) {
+            // Rebuilt by every check, so the time inside keeps counting up.
             icon = Icons.login;
             color = _green;
-            title = 'Checked in';
+            title = 'Checked in  •  '
+                '${_formatDuration(DateTime.now().difference(visit.timeIn))}';
             detail = 'Since ${_formatTime(visit.timeIn)}';
           } else {
             icon = Icons.logout;
