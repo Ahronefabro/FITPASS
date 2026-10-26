@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CheckInController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MemberPasswordResetController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\Staff\CheckInController as StaffCheckInController;
 use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
@@ -29,6 +30,11 @@ Route::middleware('guest')->group(function () {
     Route::get('/reset-password/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
     Route::post('/reset-password', [PasswordResetController::class, 'update'])->middleware('throttle:5,1')->name('password.update');
 });
+
+// Members of the mobile app reset their password here, from the emailed link.
+// Not behind the guest check: members never sign in to the website.
+Route::get('/member/reset-password/{token}', [MemberPasswordResetController::class, 'edit'])->name('member.password.reset');
+Route::post('/member/reset-password', [MemberPasswordResetController::class, 'update'])->middleware('throttle:5,1')->name('member.password.update');
 
 // The staff portal used to have a sign-in page of its own. Keep the old url
 // working for anyone who bookmarked it.
@@ -85,6 +91,8 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::post('/members', [StaffMemberController::class, 'store'])->name('members.store');
         Route::patch('/members/{member}', [StaffMemberController::class, 'update'])->name('members.update');
         Route::delete('/members/{member}', [StaffMemberController::class, 'destroy'])->name('members.destroy');
+        Route::post('/members/{pending}/approve', [StaffMemberController::class, 'approve'])->name('members.approve');
+        Route::delete('/members/{pending}/reject', [StaffMemberController::class, 'reject'])->name('members.reject');
 
         Route::get('/manual-time', [ManualTimeController::class, 'index'])->name('manual-time');
         Route::post('/manual-time', [ManualTimeController::class, 'store'])->name('manual-time.store');

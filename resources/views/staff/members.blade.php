@@ -5,6 +5,46 @@
     <h1>Members</h1>
     @include('partials.cards')
 
+    @if ($pending->isNotEmpty())
+        <section class="panel alt">
+            <h2>App Sign-ups Waiting for Payment</h2>
+            <div class="table-wrap">
+                <table>
+                    <tr><th>Name</th><th>Type</th><th>Contact</th><th>Signed up</th><th>Amount</th><th class="right">Action</th></tr>
+                    @foreach ($pending as $member)
+                        <tr>
+                            <td>
+                                <span class="who"><span class="avatar">{{ $member->initials }}</span>{{ $member->name }}</span>
+                                <small class="grey">{{ $member->email }}</small>
+                            </td>
+                            <td>{{ $member->plan }}</td>
+                            <td>{{ $member->contact ?: '----' }}</td>
+                            <td>{{ $member->created_at->format('M j, g:i A') }}</td>
+                            <td>₱{{ number_format($prices[$member->plan]) }}</td>
+                            <td class="right">
+                                <form class="inline" method="POST" action="{{ route('staff.members.approve', $member->id) }}"
+                                    data-confirm="Confirm ₱{{ number_format($prices[$member->plan]) }} payment from {{ $member->name }}?">
+                                    @csrf
+                                    <select name="method" aria-label="Payment method">
+                                        @foreach ($methods as $method)
+                                            <option value="{{ $method }}">{{ $method }}</option>
+                                        @endforeach
+                                    </select>
+                                    <button class="btn primary">CONFIRM PAYMENT</button>
+                                </form>
+                                <form class="inline" method="POST" action="{{ route('staff.members.reject', $member->id) }}"
+                                    data-confirm="Remove the sign-up from {{ $member->name }}?">
+                                    @csrf @method('DELETE')
+                                    <button class="icon-btn red" title="Reject"><span class="material-symbols-outlined">delete</span></button>
+                                </form>
+                            </td>
+                        </tr>
+                    @endforeach
+                </table>
+            </div>
+        </section>
+    @endif
+
     <section class="panel alt">
         <h2>Member List</h2>
         <div class="toolbar">

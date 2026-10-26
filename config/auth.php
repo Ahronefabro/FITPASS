@@ -69,6 +69,12 @@ return [
             'model' => env('AUTH_MODEL', User::class),
         ],
 
+        // Members who log in on the mobile app, pending sign-ups included.
+        // Registered in AppServiceProvider.
+        'members' => [
+            'driver' => 'members',
+        ],
+
         // 'users' => [
         //     'driver' => 'database',
         //     'table' => 'users',
@@ -98,6 +104,13 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        'members' => [
+            'provider' => 'members',
+            'table' => 'member_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],

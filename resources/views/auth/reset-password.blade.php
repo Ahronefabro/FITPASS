@@ -3,7 +3,7 @@
 @section('title', 'Reset password')
 
 @section('form')
-    <form method="POST" action="{{ route('password.update') }}">
+    <form method="POST" action="{{ $action ?? route('password.update') }}">
         @csrf
         <input type="hidden" name="token" value="{{ $token }}">
 
@@ -14,6 +14,7 @@
             <small>Choose a password of at least 8 characters</small>
         </div>
 
+        @if (session('status')) <p class="notice">{{ session('status') }}</p> @endif
         @foreach (['email', 'password'] as $field)
             @error($field) <p class="error">{{ $message }}</p> @enderror
         @endforeach
@@ -29,6 +30,9 @@
         </div>
         <button class="login-btn">RESET PASSWORD</button>
 
-        <p class="login-switch"><a href="{{ route('login') }}">Back to log in</a></p>
+        {{-- Members log in on the app, not here. --}}
+        @unless ($member ?? false)
+            <p class="login-switch"><a href="{{ route('login') }}">Back to log in</a></p>
+        @endunless
     </form>
 @endsection
