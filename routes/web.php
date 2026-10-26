@@ -69,6 +69,7 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::get('/dashboard', [StaffDashboardController::class, 'index'])->name('dashboard');
 
         Route::get('/check-ins', [StaffCheckInController::class, 'index'])->name('checkins');
+        Route::post('/check-ins', [StaffCheckInController::class, 'store'])->name('checkins.store');
 
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments');
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');

@@ -76,6 +76,11 @@
     let last = {code: null, at: 0};
     let timer = null;
 
+    // html5-qrcode throws if it is asked to pause or resume when it is not in
+    // that state (still starting, already paused, or stopped), so these are safe to call any time.
+    const pause = () => { try { scanner?.pause(true); } catch (error) {} };
+    const resume = () => { try { scanner?.resume(); } catch (error) {} };
+
     const say = (text, ok = true) => {
         status.textContent = text;
         status.className = 'badge ' + (ok ? 'green' : 'red');
@@ -98,12 +103,7 @@
         el('frame').hidden = false;
         el('scanned').hidden = true;
         say('Ready to scan');
-
-        try {
-            scanner?.resume();
-        } catch (error) {
-            // Already live, which is exactly where we want it.
-        }
+        resume();
     }
 
     function fill(member) {
@@ -125,11 +125,12 @@
         el('scanned-title').textContent = out ? 'CHECKED OUT' : 'CHECKED IN';
     }
 
+    const ignored = value => busy || (value === last.code && Date.now() - last.at < IGNORE_SAME_CODE_FOR);
+
     // Each scan records at once: in if they are out, out if they are in.
     function scan(value) {
-        const now = Date.now();
-        if (busy || (value === last.code && now - last.at < IGNORE_SAME_CODE_FOR)) {
-            try { scanner?.resume(); } catch (error) {}
+        if (ignored(value)) {
+            resume();
             return;
         }
 
@@ -158,26 +159,44 @@
     el('code-form').addEventListener('submit', event => {
         event.preventDefault();
         const value = el('code').value.trim();
-        if (!value) return;
+        if (!value || busy) return;
         el('code').value = '';
         // A typed code is deliberate, so it is never ignored as a repeat.
         last = {code: null, at: 0};
-        scanner?.pause(true);
+        pause();
         scan(value);
     });
 
+    const noCamera = text => {
+        scanner = null;
+        el('frame').hidden = true;
+        el('reader').innerHTML = `<p class="center grey" style="padding: 24px">${text} Type the member code below instead.</p>`;
+        say('Camera off', false);
+    };
+
     // The camera is a convenience: if it is missing or blocked, the code field still works.
-    if (typeof Html5Qrcode !== 'undefined') {
-        scanner = new Html5Qrcode('reader');
-        scanner.start({facingMode: 'environment'}, {fps: 10, qrbox: 220}, text => {
-            scanner.pause(true);
-            scan(text);
-        }).catch(() => {
-            scanner = null;
-            el('reader').innerHTML = '<p class="center grey">Camera unavailable. Type the member code below instead.</p>';
-        });
+    if (!window.isSecureContext) {
+        // Browsers only hand the camera to https:// pages and localhost.
+        noCamera('The camera only works over https:// or on localhost.');
+    } else if (typeof Html5Qrcode === 'undefined') {
+        noCamera('Scanner library did not load.');
     } else {
-        el('reader').innerHTML = '<p class="center grey">Scanner library did not load. Type the member code below instead.</p>';
+        // QR codes only, and the browser's own detector where it has one: both make reads faster.
+        scanner = new Html5Qrcode('reader', {
+            verbose: false,
+            formatsToSupport: typeof Html5QrcodeSupportedFormats === 'undefined' ? undefined : [Html5QrcodeSupportedFormats.QR_CODE],
+            experimentalFeatures: {useBarCodeDetectorIfSupported: true},
+        });
+        // No qrbox: the whole picture is read. The video is cropped to fill the panel,
+        // which throws a qrbox off from the frame drawn on screen, so codes near its
+        // edge were missed. The frame is just a guide for where to hold the code.
+        scanner.start({facingMode: 'environment'}, {fps: 10}, text => {
+            text = text.trim();
+            // A code still held up after it was recorded: keep the camera running.
+            if (ignored(text)) return;
+            pause();
+            scan(text);
+        }).catch(() => noCamera('Camera unavailable or permission denied.'));
     }
 </script>
 @endpush

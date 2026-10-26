@@ -194,6 +194,18 @@ class StaffPortalTest extends TestCase
         $this->assertSame(0, CheckIn::count());
     }
 
+    public function test_a_hand_typed_code_matches_whatever_its_case_or_spacing(): void
+    {
+        $member = $this->member();
+
+        $this->actingAs($this->staff())
+            ->postJson(route('staff.scanner.record'), ['code' => '  '.mb_strtolower($member->qr_code).' '])
+            ->assertOk()
+            ->assertJson(['action' => 'Check In']);
+
+        $this->assertSame($member->id, CheckIn::sole()->member_id);
+    }
+
     public function test_staff_can_add_edit_and_remove_a_member(): void
     {
         $this->actingAs($this->staff());

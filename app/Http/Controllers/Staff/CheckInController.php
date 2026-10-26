@@ -3,11 +3,16 @@
 namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Staff\Concerns\RecordsAttendance;
 use App\Models\CheckIn;
+use App\Models\Member;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CheckInController extends Controller
 {
+    use RecordsAttendance;
+
     public const FILTERS = ['All', 'QR Code', 'Manual', 'Currently In'];
 
     public function index(Request $request)
@@ -40,5 +45,17 @@ class CheckInController extends Controller
                 ['Currently In', CheckIn::whereNull('time_out')->count(), 'Still in the gym'],
             ],
         ]);
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'member_id' => 'required|integer|exists:members,id',
+            'action' => ['required', Rule::in(['Check In', 'Check Out'])],
+        ]);
+
+        $message = $this->logAttendance(Member::findOrFail($data['member_id']), $data['action'], 'Manual');
+
+        return back()->with('status', $message);
     }
 }

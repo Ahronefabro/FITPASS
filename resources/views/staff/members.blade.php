@@ -29,6 +29,11 @@
                             }])>{{ $member->status }}</span>
                         </td>
                         <td class="right">
+                            <button class="icon-btn" title="Show QR code" data-open="member-qr"
+                                data-name="{{ $member->name }}"
+                                data-code="{{ $member->qr_code }}">
+                                <span class="material-symbols-outlined">qr_code_2</span>
+                            </button>
                             <button class="icon-btn" title="Edit" data-open="edit-member"
                                 data-id="{{ $member->id }}"
                                 data-name="{{ $member->name }}"
@@ -49,6 +54,17 @@
             </table>
         </div>
     </section>
+
+    <dialog id="member-qr" class="member-qr">
+        <h2 id="qr-name">MEMBER QR CODE</h2>
+        <div id="qr-image" class="qr-image"></div>
+        <code id="qr-code"></code>
+        <p class="grey">Scan this at the front desk to check in and out.</p>
+        <div class="actions">
+            <button type="button" class="btn" data-close>Close</button>
+            <button type="button" class="btn primary" id="qr-print">PRINT</button>
+        </div>
+    </dialog>
 
     <dialog id="add-member" @if (old('name') && ! old('editing')) data-reopen @endif>
         <h2>ADD MEMBER</h2>
@@ -107,7 +123,52 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
+    // Draw the member's code as a QR image the scanner page can read.
+    document.addEventListener('click', e => {
+        const button = e.target.closest('[data-open="member-qr"]');
+        if (!button) return;
+
+        const image = document.getElementById('qr-image');
+        image.innerHTML = '';
+        document.getElementById('qr-name').textContent = button.dataset.name.toUpperCase();
+        document.getElementById('qr-code').textContent = button.dataset.code;
+
+        if (typeof QRCode === 'undefined') {
+            image.innerHTML = '<p style="color: #000">QR library did not load. The code below can be typed in on the scanner.</p>';
+            return;
+        }
+
+        new QRCode(image, {text: button.dataset.code, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M});
+    });
+
+    // Print just the card: the name, the QR image and the code.
+    document.getElementById('qr-print').addEventListener('click', () => {
+        const name = document.getElementById('qr-name').textContent;
+        const code = document.getElementById('qr-code').textContent;
+        const src = document.querySelector('#qr-image canvas')?.toDataURL() || document.querySelector('#qr-image img')?.src;
+        if (!src) return;
+
+        const win = window.open('', '_blank', 'width=400,height=500');
+        if (!win) return;
+        const page = win.document;
+        page.title = code;
+        page.body.style.cssText = 'font-family: sans-serif; text-align: center; padding: 24px';
+
+        const heading = page.createElement('h2');
+        heading.textContent = name;
+        const img = page.createElement('img');
+        img.width = img.height = 240;
+        const label = page.createElement('p');
+        label.style.cssText = 'font-size: 18px; letter-spacing: 2px';
+        label.textContent = code;
+        page.body.append(heading, img, label);
+
+        img.onload = () => { win.print(); win.close(); };
+        img.src = src;
+    });
+
     // The edit dialog is filled from the row's button, so one dialog serves every row.
     const editAction = @json(route('staff.members.update', ':id'));
 

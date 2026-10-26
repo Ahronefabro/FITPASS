@@ -44,7 +44,8 @@ class ScannerController extends Controller
     {
         $data = $request->validate(['code' => 'required|string|max:64']);
 
-        $member = Member::where('qr_code', $data['code'])->first();
+        // Codes are printed in capitals; a hand-typed one may not be.
+        $member = Member::where('qr_code', mb_strtoupper(trim($data['code'])))->first();
 
         if (! $member) {
             throw ValidationException::withMessages(['code' => 'QR code not recognized.']);

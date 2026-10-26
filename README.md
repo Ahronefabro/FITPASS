@@ -7,6 +7,17 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## FitPass database setup (MySQL)
+
+FitPass runs on MySQL/MariaDB (XAMPP works). Start MySQL, then pick one:
+
+- **phpMyAdmin:** import [database/fitpass.sql](database/fitpass.sql). It creates the `fitpass` database with all tables and sample data.
+- **Artisan:** create an empty `fitpass` database, then run `php artisan migrate --seed`.
+
+Copy `.env.example` to `.env` (already set to `DB_CONNECTION=mysql`, database `fitpass`, user `root`, no password) and run `php artisan key:generate`. Tests use a separate `fitpass_test` database.
+
+Sample logins: `admin` / `password` (Owner) and `staff` / `password` (Staff). Change them before going live.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

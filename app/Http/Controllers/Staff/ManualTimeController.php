@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Staff;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Staff\Concerns\RecordsAttendance;
 use App\Models\CheckIn;
+use App\Models\Member;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -22,12 +23,15 @@ class ManualTimeController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'guest_name' => 'required|string|max:255',
+            'member_id' => 'nullable|integer|exists:members,id',
+            'guest_name' => 'required_without:member_id|nullable|string|max:255',
             'action' => ['required', Rule::in(['Check In', 'Check Out'])],
         ]);
 
-        // This sheet is for walk-ins and first-timers, so the name is typed in by hand.
-        $message = $this->logGuestAttendance(trim($data['guest_name']), $data['action'], 'Manual');
+        // A member on file is picked; walk-ins and first-timers have their name typed in by hand.
+        $message = isset($data['member_id'])
+            ? $this->logAttendance(Member::findOrFail($data['member_id']), $data['action'], 'Manual')
+            : $this->logGuestAttendance(trim($data['guest_name']), $data['action'], 'Manual');
 
         return back()->with('status', $message);
     }

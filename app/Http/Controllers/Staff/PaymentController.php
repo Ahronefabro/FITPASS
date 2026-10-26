@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Member;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -34,12 +35,18 @@ class PaymentController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255',
+            'member_id' => 'nullable|integer|exists:members,id',
+            'name' => 'required_without:member_id|nullable|string|max:255',
             'paid_on' => 'required|date',
             'kind' => ['required', Rule::in(Payment::KINDS)],
             'amount' => 'required|numeric|min:0',
             'method' => ['required', Rule::in(Payment::METHODS)],
         ]);
+
+        // A member on file names the payment, so the typed name is only needed for walk-ins.
+        if (isset($data['member_id'])) {
+            $data['name'] = Member::findOrFail($data['member_id'])->name;
+        }
 
         $payment = Payment::create($data);
         AuditLog::record("recorded a {$payment->kind} payment from {$payment->name}");
