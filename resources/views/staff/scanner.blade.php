@@ -176,7 +176,7 @@
                 canvas.height = video.videoHeight;
                 context.drawImage(video, 0, 0);
                 const image = context.getImageData(0, 0, canvas.width, canvas.height);
-                const text = jsQR(image.data, image.width, image.height, {inversionAttempts: 'dontInvert'})?.data.trim();
+                const text = jsQR(image.data, image.width, image.height, {inversionAttempts: 'attemptBoth'})?.data.trim();
                 // A code still held up after it was recorded is skipped quietly.
                 if (text && !ignored(text)) scan(text);
             }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../models/member.dart';
 import '../../services/api.dart';
@@ -7,6 +6,7 @@ import '../auth/log_in.dart';
 import '../history/history.dart';
 import '../membership/membership.dart';
 import '../profile/profile.dart';
+import 'member_qr.dart';
 
 class Dashboard extends StatefulWidget {
   /// The logged-in member, as returned by the login or a restored session.
@@ -160,6 +160,10 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
+  static const _green = Color(0xFF3ECF4A);
+  static const _amber = Color(0xFFE0A22B);
+  static const _cardColor = Color(0xFF1C1C1C);
+
   late final Future<CheckInRecord?> _latest = widget.member.isPending
       ? Future.value(null)
       : Api.latestCheckIn();
@@ -176,60 +180,140 @@ class _HomeTabState extends State<HomeTab> {
     return '${_months[time.month - 1]} ${time.day}, $hour:$minute $period';
   }
 
+  void _openFullScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => MemberQrScreen(member: widget.member),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final qrCode = widget.member.qrCode;
-
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
-      color: const Color(0xFF3ECF4A),
-      child: SingleChildScrollView(
+      color: _green,
+      child: ListView(
         physics: const AlwaysScrollableScrollPhysics(
             parent: BouncingScrollPhysics()),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-        child: Column(
-          children: [
-            const SizedBox(height: 24),
-            if (qrCode == null)
-              _buildPendingNotice()
-            else ...[
-              const Text(
-                'Scan this QR',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        children: widget.member.qrCode == null
+            ? [_buildPendingNotice()]
+            : [
+                _buildPassCard(),
+                const SizedBox(height: 16),
+                _buildLatestCheckIn(),
+              ],
+      ),
+    );
+  }
+
+  // ---- The member pass: status, QR code and the code as text ----
+  Widget _buildPassCard() {
+    final member = widget.member;
+    final code = member.qrCode!;
+    final statusColor = switch (member.status) {
+      'Active' => _green,
+      'Expired' => Colors.redAccent,
+      _ => _amber,
+    };
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${member.plan} Member',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
               Container(
-                padding: const EdgeInsets.all(16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
+                  color: statusColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: QrImageView(
-                  data: qrCode,
-                  version: QrVersions.auto,
-                  size: 220,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                qrCode,
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 13,
-                  letterSpacing: 2,
+                child: Text(
+                  member.status.toUpperCase(),
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                  ),
                 ),
               ),
-              const SizedBox(height: 32),
-              _buildLatestCheckIn(),
             ],
-          ],
-        ),
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final size =
+                  constraints.maxWidth < 300 ? constraints.maxWidth : 300.0;
+              return GestureDetector(
+                onTap: _openFullScreen,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: MemberQr(code: code, size: size),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+          SelectableText(
+            code,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 3,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            member.status == 'Expired'
+                ? 'Your membership has expired. Renew at the front desk.'
+                : 'Scan at the front desk to check in and out',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: _openFullScreen,
+              icon: const Icon(Icons.fullscreen, size: 22),
+              label: const Text(
+                'SHOW AT FRONT DESK',
+                style:
+                    TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.8),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _green,
+                foregroundColor: Colors.black,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -239,13 +323,13 @@ class _HomeTabState extends State<HomeTab> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1C1C),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE0A22B)),
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _amber),
       ),
       child: const Column(
         children: [
-          Icon(Icons.hourglass_top_rounded, color: Color(0xFFE0A22B), size: 40),
+          Icon(Icons.hourglass_top_rounded, color: _amber, size: 40),
           SizedBox(height: 12),
           Text(
             'Waiting for payment',
@@ -267,35 +351,75 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
+  // ---- Latest visit ----
   Widget _buildLatestCheckIn() {
-    return FutureBuilder<CheckInRecord?>(
-      future: _latest,
-      builder: (context, snapshot) {
-        const style = TextStyle(color: Colors.white54, fontSize: 13);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: FutureBuilder<CheckInRecord?>(
+        future: _latest,
+        builder: (context, snapshot) {
+          var icon = Icons.history;
+          var color = Colors.white38;
+          var title = 'Latest visit';
+          final String detail;
 
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
+          final visit = snapshot.data;
+          if (snapshot.connectionState != ConnectionState.done) {
+            detail = 'Loading…';
+          } else if (snapshot.hasError) {
+            icon = Icons.error_outline;
+            detail = 'Could not load your latest check-in';
+          } else if (visit == null) {
+            detail = 'No check-ins yet';
+          } else if (visit.timeOut == null) {
+            icon = Icons.login;
+            color = _green;
+            title = 'Checked in';
+            detail = 'Since ${_formatTime(visit.timeIn)}';
+          } else {
+            icon = Icons.logout;
+            color = Colors.white70;
+            detail =
+                '${_formatTime(visit.timeIn)} – ${_formatTime(visit.timeOut!)}';
+          }
+
+          return Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: color.withValues(alpha: 0.15),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      detail,
+                      style:
+                          const TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           );
-        }
-        if (snapshot.hasError) {
-          return const Text('Could not load your latest check-in', style: style);
-        }
-
-        final visit = snapshot.data;
-        if (visit == null) return const Text('No check-ins yet', style: style);
-
-        final timeOut = visit.timeOut;
-        return Text(
-          timeOut == null
-              ? 'Checked in since ${_formatTime(visit.timeIn)}'
-              : 'Last visit: ${_formatTime(visit.timeIn)} – ${_formatTime(timeOut)}',
-          textAlign: TextAlign.center,
-          style: style,
-        );
-      },
+        },
+      ),
     );
   }
 }
