@@ -13,6 +13,9 @@ class Member {
 
   /// Null while the sign-up waits for staff to confirm the payment.
   final String? qrCode;
+
+  /// The profile picture's address, or null when none is set.
+  final String? photoUrl;
   final DateTime? joinedAt;
   final DateTime? expiresAt;
   final int visitsThisMonth;
@@ -27,12 +30,21 @@ class Member {
     required this.memberId,
     required this.status,
     this.qrCode,
+    this.photoUrl,
     this.joinedAt,
     this.expiresAt,
     required this.visitsThisMonth,
   });
 
   bool get isPending => status == 'Pending';
+
+  /// Up to two letters, shown when there is no profile picture.
+  String get initials => name
+      .split(' ')
+      .where((part) => part.isNotEmpty)
+      .take(2)
+      .map((part) => part[0].toUpperCase())
+      .join();
 
   int? get daysLeft {
     final expires = expiresAt;
@@ -55,6 +67,7 @@ class Member {
       memberId: json['member_id'] as String,
       status: json['status'] as String,
       qrCode: json['qr_code'] as String?,
+      photoUrl: json['photo_url'] as String?,
       joinedAt: date(json['joined_at']),
       expiresAt: date(json['expires_at']),
       visitsThisMonth: json['visits_this_month'] as int? ?? 0,

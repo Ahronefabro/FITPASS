@@ -30,6 +30,8 @@ class ScannerController extends Controller
 
         return response()->json([
             'name' => mb_strtoupper($member->name),
+            // Lets staff see that the face matches the code.
+            'photo' => $member->photo_url,
             'meta' => $member->plan.' Member  •  ID #'.str_pad((string) $member->id, 4, '0', STR_PAD_LEFT),
             'time' => now()->format('g:i A'),
             'method' => 'QR CODE',

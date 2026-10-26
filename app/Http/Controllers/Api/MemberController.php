@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CheckIn;
+use App\Models\Member;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password as PasswordRule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** What a logged-in member sees about themselves in the app. */
 class MemberController extends Controller
@@ -55,6 +58,43 @@ class MemberController extends Controller
         $member->tokens()->whereKeyNot($member->currentAccessToken()->getKey())->delete();
 
         return response()->json(['message' => 'Password updated.']);
+    }
+
+    public function updatePhoto(Request $request): JsonResponse
+    {
+        $request->validate([
+            'photo' => 'required|image|mimes:jpg,jpeg,png,webp|max:5120',
+        ], [
+            'photo.max' => 'The picture must be smaller than 5 MB.',
+        ]);
+
+        $member = $request->user();
+        $member->replacePhoto($request->file('photo'));
+
+        return response()->json(['member' => $member->toApp()]);
+    }
+
+    public function destroyPhoto(Request $request): JsonResponse
+    {
+        $member = $request->user();
+        $member->removePhoto();
+
+        return response()->json(['member' => $member->toApp()]);
+    }
+
+    /**
+     * A profile picture, by its random file name. No login: the app shows it
+     * as a plain image and staff screens show it too.
+     */
+    public function photo(string $file): StreamedResponse
+    {
+        $path = Member::PHOTO_DIR.'/'.$file;
+        abort_unless(Storage::disk('local')->exists($path), 404);
+
+        // A new picture always gets a new name, so a copy never goes stale.
+        return Storage::disk('local')->response($path, null, [
+            'Cache-Control' => 'public, max-age=31536000, immutable',
+        ]);
     }
 
     private function visit(CheckIn $visit): array

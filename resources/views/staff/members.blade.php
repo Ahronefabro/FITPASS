@@ -57,7 +57,18 @@
                 <tr><th>Name</th><th>Type</th><th>Contact</th><th>Code</th><th>Status</th><th class="right">Action</th></tr>
                 @forelse ($members as $member)
                     <tr>
-                        <td><span class="who"><span class="avatar">{{ $member->initials }}</span>{{ $member->name }}</span></td>
+                        <td>
+                            <span class="who">
+                                <span class="avatar">
+                                    @if ($member->photo_url)
+                                        <img src="{{ $member->photo_url }}" alt="" loading="lazy">
+                                    @else
+                                        {{ $member->initials }}
+                                    @endif
+                                </span>
+                                {{ $member->name }}
+                            </span>
+                        </td>
                         <td>{{ $member->plan }}</td>
                         <td>{{ $member->contact ?: '----' }}</td>
                         <td><code>{{ $member->qr_code }}</code></td>

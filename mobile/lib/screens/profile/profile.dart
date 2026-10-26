@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../models/member.dart';
 import '../../services/api.dart';
+import '../../widgets/member_avatar.dart';
 import '../auth/log_in.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -17,6 +19,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   static const Color _bgColor = Color(0xFF0E0E0E);
   static const Color _cardColor = Color(0xFF1C1C1C);
   static const Color _colorGreen = Color(0xFF3ECF4A);
+
+  /// Kept here so a new profile picture shows at once.
+  late Member _member = widget.member;
+  bool _photoBusy = false;
 
   bool _personalInfoExpanded = false;
   bool _notificationsEnabled = true;
@@ -75,6 +81,88 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _notificationsEnabled = value;
     });
+  }
+
+  // ---- Profile picture ----
+
+  void _showPhotoOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        Widget option(IconData icon, String label, VoidCallback onTap,
+            {Color color = Colors.white}) {
+          return ListTile(
+            leading: Icon(icon, color: color),
+            title: Text(label,
+                style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+            onTap: () {
+              Navigator.pop(sheetContext);
+              onTap();
+            },
+          );
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                option(Icons.photo_camera_outlined, 'Take a photo',
+                    () => _pickPhoto(ImageSource.camera)),
+                option(Icons.photo_library_outlined, 'Choose from gallery',
+                    () => _pickPhoto(ImageSource.gallery)),
+                if (_member.photoUrl != null)
+                  option(Icons.delete_outline, 'Remove photo', _removePhoto,
+                      color: Colors.redAccent),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _pickPhoto(ImageSource source) async {
+    final XFile? photo;
+    try {
+      // Scaled down on the phone so the upload stays small and quick.
+      photo = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+        preferredCameraDevice: CameraDevice.front,
+      );
+    } catch (_) {
+      _showSnack('Could not open the camera or gallery.');
+      return;
+    }
+    if (photo == null) return; // Cancelled.
+
+    await _updatePhoto(() => Api.uploadPhoto(photo!), 'Profile picture updated.');
+  }
+
+  Future<void> _removePhoto() =>
+      _updatePhoto(Api.removePhoto, 'Profile picture removed.');
+
+  Future<void> _updatePhoto(
+      Future<Member> Function() change, String doneMessage) async {
+    setState(() => _photoBusy = true);
+    try {
+      final member = await change();
+      if (!mounted) return;
+      setState(() => _member = member);
+      _showSnack(doneMessage);
+    } on ApiException catch (e) {
+      _showSnack(e.message);
+    } finally {
+      if (mounted) setState(() => _photoBusy = false);
+    }
   }
 
   // ---- Change password flow ----
@@ -234,10 +322,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final username = widget.member.name;
-    final email = widget.member.email;
-    final phoneNumber = widget.member.contact ?? '';
-    final memberType = widget.member.plan;
+    final username = _member.name;
+    final email = _member.email;
+    final phoneNumber = _member.contact ?? '';
+    final memberType = _member.plan;
     final notificationsEnabled = _notificationsEnabled;
 
     return Scaffold(
@@ -296,17 +384,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildAvatarSection(String name, String email) {
     return Column(
       children: [
-        Container(
-          width: 92,
-          height: 92,
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white24, width: 2),
-          ),
-          child: const CircleAvatar(
-            backgroundColor: Colors.white24,
-            child: Icon(Icons.person, color: Colors.white70, size: 40),
+        GestureDetector(
+          onTap: _photoBusy ? null : _showPhotoOptions,
+          child: Stack(
+            children: [
+              Container(
+                width: 104,
+                height: 104,
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white24, width: 2),
+                ),
+                child: _photoBusy
+                    ? const CircleAvatar(
+                        backgroundColor: Colors.white24,
+                        child: SizedBox(
+                          width: 26,
+                          height: 26,
+                          child: CircularProgressIndicator(
+                              color: _colorGreen, strokeWidth: 2.5),
+                        ),
+                      )
+                    : MemberAvatar(member: _member, radius: 49),
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: _colorGreen,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _bgColor, width: 3),
+                  ),
+                  child: const Icon(Icons.camera_alt,
+                      color: Colors.black, size: 16),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 14),

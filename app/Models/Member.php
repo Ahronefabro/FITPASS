@@ -5,7 +5,9 @@ namespace App\Models;
 use App\Notifications\MemberResetPassword;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -30,7 +32,10 @@ class Member extends Authenticatable
     /** What each plan costs, used when staff sign someone up at the front desk. */
     public const PRICES = ['Regular' => 1000, 'Student' => 800, 'Senior' => 700];
 
-    protected $fillable = ['name', 'plan', 'membership_type', 'contact', 'email', 'password', 'qr_code', 'amount', 'joined_at', 'expires_at'];
+    /** Where profile pictures are kept, on the private local disk. */
+    public const PHOTO_DIR = 'member-photos';
+
+    protected $fillable = ['name', 'plan', 'membership_type', 'contact', 'email', 'password', 'qr_code', 'photo', 'amount', 'joined_at', 'expires_at'];
 
     protected $hidden = ['password'];
 
@@ -44,6 +49,39 @@ class Member extends Authenticatable
         static::creating(function (self $member) {
             $member->qr_code ??= static::newCode();
         });
+
+        static::deleted(fn (self $member) => $member->deletePhotoFile());
+    }
+
+    /** The profile picture's address, or null when there is none. */
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->photo ? route('member.photo', $this->photo) : null;
+    }
+
+    /** Puts a new profile picture in place of the old one. */
+    public function replacePhoto(UploadedFile $file): void
+    {
+        // A random name: the picture is served without a login, so its
+        // address must not be guessable.
+        $name = $file->hashName();
+        Storage::disk('local')->putFileAs(self::PHOTO_DIR, $file, $name);
+
+        $this->deletePhotoFile();
+        $this->update(['photo' => $name]);
+    }
+
+    public function removePhoto(): void
+    {
+        $this->deletePhotoFile();
+        $this->update(['photo' => null]);
+    }
+
+    private function deletePhotoFile(): void
+    {
+        if ($this->photo) {
+            Storage::disk('local')->delete(self::PHOTO_DIR.'/'.$this->photo);
+        }
     }
 
     public static function newCode(): string
@@ -146,6 +184,7 @@ class Member extends Authenticatable
             'status' => $this->status,
             // A pending code would only be turned away at the scanner.
             'qr_code' => $this->isPending() ? null : $this->qr_code,
+            'photo_url' => $this->photo_url,
             'joined_at' => $this->joined_at?->toDateString(),
             'expires_at' => $this->expires_at?->toDateString(),
             'visits_this_month' => $this->visits_this_month,

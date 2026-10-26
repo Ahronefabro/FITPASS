@@ -5,6 +5,7 @@ import '../../services/api.dart';
 import '../auth/log_in.dart';
 import '../history/history.dart';
 import '../membership/membership.dart';
+import '../../widgets/member_avatar.dart';
 import '../profile/profile.dart';
 import 'member_qr.dart';
 
@@ -115,18 +116,17 @@ class _DashboardState extends State<Dashboard>
             ),
           ),
           GestureDetector(
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
                     builder: (context) => ProfileScreen(member: _member)),
               );
+              // Picks up a profile picture changed on the profile screen.
+              // Not mounted when the member logged out from there.
+              if (mounted) _refresh();
             },
-            child: const CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.white24,
-              child: Icon(Icons.person, color: Colors.white70, size: 20),
-            ),
+            child: MemberAvatar(member: _member, radius: 18),
           ),
         ],
       ),
@@ -290,28 +290,6 @@ class _HomeTabState extends State<HomeTab> {
                 : 'Scan at the front desk to check in and out',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white54, fontSize: 12),
-          ),
-          const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: _openFullScreen,
-              icon: const Icon(Icons.fullscreen, size: 22),
-              label: const Text(
-                'SHOW AT FRONT DESK',
-                style:
-                    TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.8),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _green,
-                foregroundColor: Colors.black,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-              ),
-            ),
           ),
         ],
       ),

@@ -1,70 +1,142 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# FitPass
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A gym membership and attendance system with QR code check-in.
 
-## FitPass database setup (MySQL)
+- **Web portal** (Laravel): the owner and staff side, including members, payments, check-ins, the QR scanner and reports.
+- **Mobile app** (Flutter, in `mobile/`): the member side. Members sign up, show their QR code at the front desk, and see their membership and visit history.
 
-FitPass runs on MySQL/MariaDB (XAMPP works). Start MySQL, then pick one:
+Members who sign up in the app stay **pending** until staff confirm their payment on the staff **Members** page. Their QR code works after that.
 
-- **phpMyAdmin:** import [database/fitpass.sql](database/fitpass.sql). It creates the `fitpass` database with all tables and sample data.
-- **Artisan:** create an empty `fitpass` database, then run `php artisan migrate --seed`.
+---
 
-Copy `.env.example` to `.env` (already set to `DB_CONNECTION=mysql`, database `fitpass`, user `root`, no password) and run `php artisan key:generate`. Tests use a separate `fitpass_test` database.
+## 1. What to install
 
-Sample logins: `admin` / `password` (Owner) and `staff` / `password` (Staff). Change them before going live.
+| Tool | Version | Used for |
+|---|---|---|
+| [XAMPP](https://www.apachefriends.org/) | **PHP 8.2 or newer** | PHP and MySQL |
+| [Composer](https://getcomposer.org/download/) | latest | Laravel packages |
+| [Git](https://git-scm.com/) | latest | Getting the code |
+| [Flutter](https://docs.flutter.dev/get-started/install/windows) | 3.x | The mobile app only |
+| Google Chrome | latest | Running the app and the scanner |
 
-## About Laravel
+Run `php -v` to check your PHP version. If it shows 8.0 or 8.1, install a newer XAMPP first, because the project will not install on older PHP.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 2. Get the code
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```powershell
+git clone https://github.com/Ahronefabro/FITPASS.git
+cd FITPASS
+```
 
-## Learning Laravel
+If you cloned it before, run `git pull` instead to get the latest version.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 3. Set up the web portal (first time only)
 
-## Laravel Sponsors
+1. Open the **XAMPP Control Panel** and click **Start** next to **MySQL**.
+2. Open http://localhost/phpmyadmin, click **New**, and create a database named **`fitpass`**.
+3. In a terminal inside the `FITPASS` folder, run:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```powershell
+composer install
+copy .env.example .env
+php artisan key:generate
+php artisan migrate --seed
+```
 
-### Premium Partners
+`.env.example` already uses the XAMPP defaults: user `root`, no password, database `fitpass`. If your MySQL is set up differently, edit the `DB_` lines in `.env`.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+---
 
-## Contributing
+## 4. Run the web portal (every time)
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+With MySQL running in XAMPP, run:
 
-## Code of Conduct
+```powershell
+php artisan serve --host=0.0.0.0 --port=8000
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Open **http://localhost:8000** and log in with one of these accounts:
 
-## Security Vulnerabilities
+| Portal | Username | Password |
+|---|---|---|
+| Owner | `admin` | `password` |
+| Staff | `staff` | `password` |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Keep this terminal open while you use the app, because the app needs the server running.
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 5. Run the mobile app
+
+Open a **second terminal**:
+
+```powershell
+cd mobile
+flutter pub get
+```
+
+Then choose one of these:
+
+**In Chrome (easiest)**
+```powershell
+flutter run -d chrome
+```
+
+**On the Android emulator**
+```powershell
+flutter run
+```
+
+**On a real Android phone**
+
+The phone must be on the **same Wi-Fi** as your computer. Run `ipconfig` and copy your **IPv4 Address** (for example `192.168.1.10`), then:
+
+```powershell
+flutter run --dart-define=API_URL=http://192.168.1.10:8000
+```
+
+**To build an APK file to install on a phone:**
+```powershell
+flutter build apk --release --dart-define=API_URL=http://192.168.1.10:8000
+```
+The APK is saved to `mobile\build\app\outputs\flutter-apk\app-release.apk`. Each APK only works with the computer whose IP was used to build it, so everyone builds their own.
+
+---
+
+## 6. Try the whole flow
+
+1. In the app, tap **Sign up** and create an account. The home screen shows **Waiting for payment**.
+2. In the web portal, log in as **staff**, open **Members**, and click **Confirm payment** on the new sign-up.
+3. In the app, log in and pull down on the home screen. Your QR code appears.
+4. In the web portal, open the staff **Scanner** at **http://localhost:8000/staff/scanner** and show the QR code to the webcam. The member is checked in, and the visit appears in the app's **History** tab.
+
+The scanner camera only works on **localhost** or **https://**. Open the scanner on the computer running the server, not through an IP address like `192.168.x.x`.
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `vendor/autoload.php` not found | Run `composer install` |
+| `Your php version does not satisfy...` | Install a XAMPP with PHP 8.2 or newer |
+| `No application encryption key` | Run `php artisan key:generate` |
+| `Unknown database 'fitpass'` | Create the `fitpass` database in phpMyAdmin |
+| `No connection could be made` / page hangs | Start **MySQL** in XAMPP |
+| Login says wrong username or password | Run `php artisan migrate --seed` to create the accounts |
+| App says **Could not reach the FitPass server** | Make sure `php artisan serve --host=0.0.0.0 --port=8000` is running. On a phone, check that you used your own IP and are on the same Wi-Fi |
+| Phone still cannot connect | Allow the server through Windows Firewall. In PowerShell **as Administrator**, run `New-NetFirewallRule -DisplayName "FitPass 8000" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Private` |
+| Scanner says the camera only works over https or localhost | Open the scanner at `http://localhost:8000/staff/scanner` |
+| APK build fails asking for an NDK | Install it from Android Studio: **SDK Manager**, **SDK Tools**, **NDK (Side by side)** |
+
+## Running the tests
+
+The tests use a separate database. Create an empty database named **`fitpass_test`** in phpMyAdmin, then run:
+
+```powershell
+php artisan test
+```

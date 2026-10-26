@@ -8,7 +8,9 @@ use App\Models\Payment;
 use App\Models\User;
 use App\Notifications\MemberResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class MemberAppApiTest extends TestCase
@@ -169,6 +171,78 @@ class MemberAppApiTest extends TestCase
         ])->assertOk();
 
         $this->postJson('/api/login', ['email' => 'jaspher@example.com', 'password' => 'newpass123'])->assertOk();
+    }
+
+    /** A real 1x1 png, so the upload passes the image check without GD. */
+    private function picture(string $name = 'me.png'): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+        ));
+    }
+
+    public function test_a_member_sets_replaces_and_removes_a_profile_picture(): void
+    {
+        Storage::fake('local');
+        $member = $this->activeMember();
+        $token = $this->token('jaspher@example.com');
+
+        $first = $this->withToken($token)->postJson('/api/me/photo', ['photo' => $this->picture()])
+            ->assertOk()->json('member.photo_url');
+        $firstFile = Member::PHOTO_DIR.'/'.$member->fresh()->photo;
+        Storage::disk('local')->assertExists($firstFile);
+
+        // Shown without a login, as the app and the staff screens load it.
+        $this->get($first)->assertOk()->assertHeader('Content-Type', 'image/png');
+
+        $second = $this->withToken($token)->postJson('/api/me/photo', ['photo' => $this->picture()])
+            ->assertOk()->json('member.photo_url');
+        $this->assertNotSame($first, $second);
+        Storage::disk('local')->assertMissing($firstFile);
+        $this->get($first)->assertNotFound();
+
+        $this->withToken($token)->deleteJson('/api/me/photo')
+            ->assertOk()->assertJsonPath('member.photo_url', null);
+        Storage::disk('local')->assertDirectoryEmpty(Member::PHOTO_DIR);
+    }
+
+    public function test_a_profile_picture_must_be_an_image(): void
+    {
+        Storage::fake('local');
+        $this->activeMember();
+
+        // A real file, not a fake: a fake reports its type from the name, while
+        // real uploads are checked by what is inside them.
+        $path = tempnam(sys_get_temp_dir(), 'fp');
+        file_put_contents($path, 'not an image');
+
+        $this->withToken($this->token('jaspher@example.com'))
+            ->postJson('/api/me/photo', ['photo' => new UploadedFile($path, 'me.png', null, null, true)])
+            ->assertUnprocessable()->assertJsonValidationErrors('photo');
+    }
+
+    public function test_staff_see_the_picture_when_the_member_is_scanned(): void
+    {
+        Storage::fake('local');
+        $member = $this->activeMember();
+        $member->replacePhoto($this->picture());
+
+        $this->actingAs(User::factory()->staff()->create())
+            ->postJson(route('staff.scanner.record'), ['code' => $member->qr_code])
+            ->assertOk()->assertJsonPath('photo', $member->photo_url);
+
+        $this->get(route('staff.members'))->assertSee($member->photo_url, false);
+    }
+
+    public function test_deleting_a_member_deletes_their_picture(): void
+    {
+        Storage::fake('local');
+        $member = $this->activeMember();
+        $member->replacePhoto($this->picture());
+
+        $member->delete();
+
+        Storage::disk('local')->assertDirectoryEmpty(Member::PHOTO_DIR);
     }
 
     public function test_logging_out_ends_the_token(): void

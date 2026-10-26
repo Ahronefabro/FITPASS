@@ -111,6 +111,21 @@
         el('member-visits').textContent = member.visits;
         el('member-avatar').classList.add('found');
 
+        // The member's own picture when they set one in the app, else the icon.
+        const avatar = el('member-avatar');
+        avatar.replaceChildren();
+        if (member.photo) {
+            const img = document.createElement('img');
+            img.src = member.photo;
+            img.alt = '';
+            avatar.append(img);
+        } else {
+            const icon = document.createElement('span');
+            icon.className = 'material-symbols-outlined';
+            icon.textContent = 'person';
+            avatar.append(icon);
+        }
+
         result.textContent = out ? 'CHECKED OUT' : 'CHECKED IN';
         result.className = 'scan-result ' + (out ? 'out' : 'in');
         result.hidden = false;

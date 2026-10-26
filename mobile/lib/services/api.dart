@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/member.dart';
@@ -148,6 +149,28 @@ class Api {
     });
   }
 
+  // ---- Profile picture ----
+
+  /// Uploads a new profile picture and returns the member with its address.
+  static Future<Member> uploadPhoto(XFile photo) async {
+    final request =
+        http.MultipartRequest('POST', Uri.parse('$baseUrl/api/me/photo'))
+          ..headers.addAll(_headers())
+          ..files.add(http.MultipartFile.fromBytes(
+            'photo',
+            await photo.readAsBytes(),
+            filename: photo.name,
+          ));
+
+    final body = await _receive(request, timeout: const Duration(seconds: 60));
+    return Member.fromJson(body['member'] as Map<String, dynamic>);
+  }
+
+  static Future<Member> removePhoto() async {
+    final body = await _send('DELETE', '/me/photo');
+    return Member.fromJson(body['member'] as Map<String, dynamic>);
+  }
+
   // ---- Member data ----
 
   static Future<Member> me() async {
@@ -186,17 +209,27 @@ class Api {
   }) async {
     final uri = Uri.parse('$baseUrl/api$path').replace(queryParameters: query);
     final request = http.Request(method, uri)
-      ..headers.addAll({
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        if (_token != null) 'Authorization': 'Bearer $_token',
-      });
+      ..headers.addAll(_headers())
+      ..headers['Content-Type'] = 'application/json';
     if (body != null) request.body = jsonEncode(body);
 
+    return _receive(request);
+  }
+
+  static Map<String, String> _headers() => {
+        'Accept': 'application/json',
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      };
+
+  /// Sends any request and turns the answer into json or an [ApiException].
+  static Future<Map<String, dynamic>> _receive(
+    http.BaseRequest request, {
+    Duration timeout = _timeout,
+  }) async {
     final http.Response response;
     try {
       response = await http.Response.fromStream(
-        await request.send().timeout(_timeout),
+        await request.send().timeout(timeout),
       );
     } catch (_) {
       throw const ApiException(
