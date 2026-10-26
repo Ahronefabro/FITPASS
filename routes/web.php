@@ -85,7 +85,6 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::post('/notifications/read', [NotificationController::class, 'markAllRead'])->name('notifications.read');
 
         Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner');
-        Route::post('/scanner/lookup', [ScannerController::class, 'lookup'])->name('scanner.lookup');
         Route::post('/scanner/record', [ScannerController::class, 'store'])->name('scanner.record');
     });
 });

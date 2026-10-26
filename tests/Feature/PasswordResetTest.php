@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -11,8 +12,7 @@ use Illuminate\Support\Facades\Password;
 use Tests\TestCase;
 
 /**
- * Anyone who forgets their password can have a reset link emailed to them,
- * and the link lets them set a new one without signing in.
+ * Forgotten passwords: ask for a link by email, follow it, choose a new one.
  */
 class PasswordResetTest extends TestCase
 {
@@ -21,61 +21,69 @@ class PasswordResetTest extends TestCase
     private function account(): User
     {
         return User::factory()->create([
-            'username' => 'someone',
-            'email' => 'someone@fitpass.test',
+            'name' => 'Front Desk',
+            'username' => 'desk',
+            'email' => 'desk@fitpass.test',
             'role' => 'Staff',
-            'password' => 'secret',
+            'password' => 'old-password',
         ]);
     }
 
-    public function test_the_login_page_links_to_the_reset_form(): void
+    public function test_the_sign_in_page_links_to_the_forgot_password_form(): void
     {
         $this->get(route('login'))->assertSee(route('password.request'));
         $this->get(route('password.request'))->assertOk()->assertSee('FORGOT PASSWORD');
     }
 
-    public function test_a_known_email_gets_a_reset_link(): void
+    public function test_a_reset_link_is_emailed_to_the_account(): void
     {
         Notification::fake();
         $user = $this->account();
 
-        $this->post(route('password.email'), ['email' => $user->email])
+        $this->post(route('password.email'), ['email' => 'desk@fitpass.test'])
             ->assertSessionHas('status');
 
         Notification::assertSentTo($user, ResetPassword::class);
     }
 
-    public function test_an_unknown_email_gets_the_same_answer(): void
+    public function test_an_unknown_email_gets_the_same_answer_and_no_email(): void
     {
         Notification::fake();
+        $this->account();
 
-        $this->post(route('password.email'), ['email' => 'nobody@fitpass.test'])
-            ->assertSessionHas('status')
-            ->assertSessionHasNoErrors();
+        $known = $this->from(route('password.request'))
+            ->post(route('password.email'), ['email' => 'desk@fitpass.test'])
+            ->assertSessionHasNoErrors()->baseResponse->getSession()->get('status');
 
-        Notification::assertNothingSent();
+        $this->flushSession();
+
+        $this->from(route('password.request'))
+            ->post(route('password.email'), ['email' => 'nobody@fitpass.test'])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', $known);
+
+        Notification::assertSentTimes(ResetPassword::class, 1);
     }
 
-    public function test_the_link_sets_a_new_password(): void
+    public function test_the_link_lets_them_choose_a_new_password_and_sign_in(): void
     {
         $user = $this->account();
         $token = Password::createToken($user);
 
         $this->get(route('password.reset', ['token' => $token, 'email' => $user->email]))
-            ->assertOk()
-            ->assertSee($user->email);
+            ->assertOk()->assertSee('NEW PASSWORD');
 
         $this->post(route('password.update'), [
             'token' => $token,
             'email' => $user->email,
             'password' => 'brand-new-pass',
             'password_confirmation' => 'brand-new-pass',
-        ])->assertRedirect(route('login'));
+        ])->assertRedirect(route('login'))->assertSessionHas('status');
 
         $this->assertTrue(Hash::check('brand-new-pass', $user->fresh()->password));
-        $this->assertDatabaseHas('audit_logs', ['action' => 'reset their password']);
+        $this->assertTrue(AuditLog::where('action', 'reset their password')->where('user_name', 'Front Desk')->exists());
 
-        $this->post(route('login'), ['username' => 'someone', 'password' => 'brand-new-pass'])
+        $this->post(route('login'), ['username' => 'desk', 'password' => 'brand-new-pass'])
             ->assertRedirect(route('staff.dashboard'));
     }
 
@@ -90,6 +98,21 @@ class PasswordResetTest extends TestCase
             'password_confirmation' => 'brand-new-pass',
         ])->assertSessionHasErrors('email');
 
-        $this->assertTrue(Hash::check('secret', $user->fresh()->password));
+        $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
+    }
+
+    public function test_the_new_password_must_be_confirmed_and_long_enough(): void
+    {
+        $user = $this->account();
+        $token = Password::createToken($user);
+
+        $this->post(route('password.update'), [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'short',
+            'password_confirmation' => 'different',
+        ])->assertSessionHasErrors('password');
+
+        $this->assertTrue(Hash::check('old-password', $user->fresh()->password));
     }
 }

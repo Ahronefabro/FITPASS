@@ -160,27 +160,38 @@ class StaffPortalTest extends TestCase
         $member = $this->member();
         $this->actingAs($this->staff());
 
-        $this->postJson(route('staff.scanner.lookup'), ['code' => $member->qr_code])
+        // The first scan checks the member in straight away.
+        $this->postJson(route('staff.scanner.record'), ['code' => $member->qr_code])
             ->assertOk()
             ->assertJson(['action' => 'Check In', 'method' => 'QR CODE', 'membership' => 'ACTIVE']);
 
-        $this->postJson(route('staff.scanner.record'), ['code' => $member->qr_code])->assertOk();
-        $this->assertSame('QR Code', CheckIn::sole()->method);
+        $visit = CheckIn::sole();
+        $this->assertSame('QR Code', $visit->method);
+        $this->assertNull($visit->time_out);
 
-        // The same code now reads as a check-out, because the visit is still open.
-        $this->postJson(route('staff.scanner.lookup'), ['code' => $member->qr_code])
+        // The second scan checks them out of that same visit.
+        $this->postJson(route('staff.scanner.record'), ['code' => $member->qr_code])
+            ->assertOk()
             ->assertJson(['action' => 'Check Out']);
 
-        $this->postJson(route('staff.scanner.record'), ['code' => $member->qr_code])->assertOk();
-        $this->assertNotNull(CheckIn::sole()->time_out);
+        $this->assertNotNull($visit->fresh()->time_out);
+        $this->assertSame(1, CheckIn::count());
+
+        // And a third scan starts a new visit.
+        $this->postJson(route('staff.scanner.record'), ['code' => $member->qr_code])
+            ->assertJson(['action' => 'Check In']);
+
+        $this->assertSame(2, CheckIn::count());
     }
 
     public function test_an_unknown_code_is_rejected(): void
     {
         $this->actingAs($this->staff())
-            ->postJson(route('staff.scanner.lookup'), ['code' => 'FP-NOPE'])
+            ->postJson(route('staff.scanner.record'), ['code' => 'FP-NOPE'])
             ->assertStatus(422)
             ->assertJsonValidationErrors('code');
+
+        $this->assertSame(0, CheckIn::count());
     }
 
     public function test_staff_can_add_edit_and_remove_a_member(): void
