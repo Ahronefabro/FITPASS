@@ -147,7 +147,8 @@ class StaffPortalTest extends TestCase
     public function test_the_check_in_log_can_be_filtered(): void
     {
         $member = $this->member();
-        CheckIn::create(['member_id' => $member->id, 'time_in' => now()->subHour(), 'method' => 'QR Code']);
+        // Now, not an hour ago: just after midnight an hour ago is yesterday's log.
+        CheckIn::create(['member_id' => $member->id, 'time_in' => now(), 'method' => 'QR Code']);
         $this->actingAs($this->staff());
 
         $this->get(route('staff.checkins', ['filter' => 'QR Code']))->assertOk()->assertSee('QR Code');

@@ -27,9 +27,13 @@ class MemberController extends Controller
             'to' => 'required|date|after_or_equal:from',
         ]);
 
-        // The phone sends its own local times with an offset; visits are stored in UTC.
+        // The phone sends its times with an offset; visits are stored in the app's timezone.
+        $timezone = config('app.timezone');
         $visits = $request->user()->checkIns()
-            ->whereBetween('time_in', [$request->date('from')->utc(), $request->date('to')->utc()])
+            ->whereBetween('time_in', [
+                $request->date('from')->setTimezone($timezone),
+                $request->date('to')->setTimezone($timezone),
+            ])
             ->latest('time_in')
             ->limit(500)
             ->get();
