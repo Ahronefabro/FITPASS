@@ -1,15 +1,12 @@
 @php
     $nav = [
-        ['overview', 'dashboard_customize', 'Overview', 'Dashboard & key metrics', 'dashboard home metrics revenue summary'],
-        ['analytics', 'show_chart', 'Analytics', 'Charts, trends & performance', 'chart charts graph report trends statistics'],
-        ['members.index', 'group', 'Members', 'Member list & membership types', 'member membership regular student senior'],
-        ['staff.index', 'assignment_ind', 'Staff Management', 'Staff, roles & shifts', 'staff employee trainer trainers front desk admin admins shift role'],
-        ['checkins.index', 'settings', 'Check-in', 'Scan & log member check-ins', 'checkin check in attendance scan qr'],
-        ['audit-logs', 'description', 'Audit Logs', 'Activity history', 'audit log logs history activity security'],
+        ['overview', 'dashboard_customize', 'Overview'],
+        ['analytics', 'show_chart', 'Analytics'],
+        ['members.index', 'group', 'Members'],
+        ['staff.index', 'assignment_ind', 'Staff Management'],
+        ['checkins.index', 'settings', 'Check-in'],
+        ['audit-logs', 'description', 'Audit Logs'],
     ];
-    $pages = array_map(fn ($item) => [
-        'url' => route($item[0]), 'icon' => $item[1], 'title' => $item[2], 'subtitle' => $item[3], 'keywords' => $item[4],
-    ], $nav);
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -38,11 +35,6 @@
 
     <div class="main">
         <header class="topbar">
-            <div class="search">
-                <span class="material-symbols-outlined">search</span>
-                <input id="page-search" type="search" placeholder="Search pages..." autocomplete="off">
-                <div id="search-results" class="results" hidden></div>
-            </div>
             <details class="menu user-menu">
                 <summary class="user">
                     <span class="avatar"><span class="material-symbols-outlined">person</span></span>
@@ -71,26 +63,6 @@
 @endif
 
 <script>
-    const pages = {{ Js::from($pages) }};
-    const input = document.getElementById('page-search');
-    const results = document.getElementById('search-results');
-    const matches = () => {
-        const q = input.value.trim().toLowerCase();
-        return q ? pages.filter(p => (p.title + ' ' + p.keywords).toLowerCase().includes(q)) : [];
-    };
-
-    // Header search: type to see matching pages, click one or press Enter to go there.
-    input.addEventListener('input', () => {
-        const found = matches();
-        results.innerHTML = found.map(p =>
-            `<a href="${p.url}"><span class="material-symbols-outlined">${p.icon}</span><span><b>${p.title}</b><small>${p.subtitle}</small></span></a>`
-        ).join('');
-        results.hidden = !found.length;
-    });
-    input.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && matches().length) location.href = matches()[0].url;
-    });
-
     // A click on the dimmed backdrop lands on the dialog itself, outside its box.
     const outside = e => {
         const box = e.target.getBoundingClientRect();
@@ -99,7 +71,6 @@
 
     // Close dropdowns on outside click; open and close dialogs.
     document.addEventListener('click', e => {
-        if (!e.target.closest('.search')) results.hidden = true;
         document.querySelectorAll('details.menu[open]').forEach(menu => menu.contains(e.target) || (menu.open = false));
         const opener = e.target.closest('[data-open]');
         if (opener) document.getElementById(opener.dataset.open).showModal();

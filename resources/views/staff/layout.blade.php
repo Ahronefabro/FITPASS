@@ -1,16 +1,13 @@
 @php
     $nav = [
-        ['staff.dashboard', 'dashboard_customize', 'Dashboard', 'Today at a glance', 'dashboard home stats overview today'],
-        ['staff.checkins', 'login', 'Check-ins', 'Arrivals and departures', 'checkin check in out log attendance qr manual'],
-        ['staff.payments', 'payments', 'Payments', 'Monthly dues and walk-ins', 'payment paid dues gcash cash walk-in monthly'],
-        ['staff.members', 'group', 'Members', 'Member list and codes', 'member members regular student senior contact code'],
-        ['staff.manual-time', 'schedule', 'Manual Time in/out', 'Record a time by hand', 'manual time in out record desk'],
-        ['staff.notifications', 'notifications', 'Notifications', 'Alerts and reminders', 'notification alert reminder expiring unread'],
-        ['staff.scanner', 'qr_code_scanner', 'Scanner', 'Scan a member QR code', 'scan scanner qr code camera'],
+        ['staff.dashboard', 'dashboard_customize', 'Dashboard'],
+        ['staff.checkins', 'login', 'Check-ins'],
+        ['staff.payments', 'payments', 'Payments'],
+        ['staff.members', 'group', 'Members'],
+        ['staff.manual-time', 'schedule', 'Manual Time in/out'],
+        ['staff.notifications', 'notifications', 'Notifications'],
+        ['staff.scanner', 'qr_code_scanner', 'Scanner'],
     ];
-    $pages = array_map(fn ($item) => [
-        'url' => route($item[0]), 'icon' => $item[1], 'title' => $item[2], 'subtitle' => $item[3], 'keywords' => $item[4],
-    ], $nav);
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -39,11 +36,6 @@
 
     <div class="main">
         <header class="topbar">
-            <div class="search">
-                <span class="material-symbols-outlined">search</span>
-                <input id="page-search" type="search" placeholder="Search pages..." autocomplete="off">
-                <div id="search-results" class="results" hidden></div>
-            </div>
             <details class="menu user-menu">
                 <summary class="user">
                     <span class="avatar"><span class="material-symbols-outlined">person</span></span>
@@ -72,26 +64,6 @@
 @endif
 
 <script>
-    const pages = {{ Js::from($pages) }};
-    const input = document.getElementById('page-search');
-    const results = document.getElementById('search-results');
-    const matches = () => {
-        const q = input.value.trim().toLowerCase();
-        return q ? pages.filter(p => (p.title + ' ' + p.keywords).toLowerCase().includes(q)) : [];
-    };
-
-    // Header search: type to see matching pages, click one or press Enter to go there.
-    input.addEventListener('input', () => {
-        const found = matches();
-        results.innerHTML = found.map(p =>
-            `<a href="${p.url}"><span class="material-symbols-outlined">${p.icon}</span><span><b>${p.title}</b><small>${p.subtitle}</small></span></a>`
-        ).join('');
-        results.hidden = !found.length;
-    });
-    input.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && matches().length) location.href = matches()[0].url;
-    });
-
     // A click on the dimmed backdrop lands on the dialog itself, outside its box.
     const outside = e => {
         const box = e.target.getBoundingClientRect();
@@ -100,7 +72,6 @@
 
     // Close dropdowns on outside click; open and close dialogs.
     document.addEventListener('click', e => {
-        if (!e.target.closest('.search')) results.hidden = true;
         document.querySelectorAll('details.menu[open]').forEach(menu => menu.contains(e.target) || (menu.open = false));
         const opener = e.target.closest('[data-open]');
         if (opener) document.getElementById(opener.dataset.open).showModal();
