@@ -25,6 +25,11 @@ class EnsurePortalAccess
             abort(403, 'This page is not reachable without signing in.');
         }
 
+        // Set to Inactive in the staff directory after this session started.
+        if ($user->isDeactivated()) {
+            return $this->signOut($request, 'This account has been deactivated. Please contact the owner.');
+        }
+
         if (Portal::allows($portal, $user->role)) {
             return $next($request);
         }
@@ -42,11 +47,19 @@ class EnsurePortalAccess
         }
 
         // The role was changed or taken away after this session started.
+        return $this->signOut($request, 'This account no longer has access.');
+    }
+
+    private function signOut(Request $request, string $message): Response
+    {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')
-            ->withErrors(['username' => 'This account no longer has access.']);
+        if ($request->expectsJson()) {
+            abort(403, $message);
+        }
+
+        return redirect()->route('login')->withErrors(['username' => $message]);
     }
 }

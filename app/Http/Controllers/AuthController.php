@@ -43,6 +43,14 @@ class AuthController extends Controller
             ]);
         }
 
+        // Only told after the password checks out, so it confirms nothing to a
+        // stranger guessing names.
+        if ($user->isDeactivated()) {
+            throw ValidationException::withMessages([
+                'username' => 'This account has been deactivated. Please contact the owner.',
+            ]);
+        }
+
         Auth::login($user);
         $request->session()->regenerate();
 

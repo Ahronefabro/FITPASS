@@ -279,4 +279,57 @@ class PortalAccessTest extends TestCase
 
         $this->assertNotNull($row->fresh()->last_login_at);
     }
+
+    // -----------------------------------------------------------------
+    // Inactive in the staff directory means no sign-in
+    // -----------------------------------------------------------------
+
+    private function directoryRow(User $user, string $status): Staff
+    {
+        return Staff::create([
+            'name' => $user->name,
+            'role' => 'Staff',
+            'shift_start' => '06:00',
+            'status' => $status,
+        ]);
+    }
+
+    public function test_an_inactive_staff_account_cannot_sign_in(): void
+    {
+        $this->directoryRow($this->account('Staff', 'frontdesk'), 'Inactive');
+
+        $this->signIn('frontdesk')->assertSessionHasErrors('username');
+
+        $this->assertGuest();
+    }
+
+    public function test_setting_a_staff_account_back_to_active_lets_it_sign_in(): void
+    {
+        $row = $this->directoryRow($this->account('Staff', 'frontdesk'), 'Inactive');
+        $row->update(['status' => 'Active']);
+
+        $this->signIn('frontdesk')->assertRedirect(route('staff.dashboard'));
+
+        $this->assertAuthenticated();
+    }
+
+    public function test_setting_a_signed_in_staff_account_inactive_signs_it_out(): void
+    {
+        $user = $this->account('Staff', 'frontdesk');
+        $row = $this->directoryRow($user, 'Active');
+
+        $this->actingAs($user)->get(route('staff.dashboard'))->assertOk();
+
+        $row->update(['status' => 'Inactive']);
+
+        $this->get(route('staff.dashboard'))->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
+    public function test_an_inactive_directory_row_never_locks_out_the_owner(): void
+    {
+        $this->directoryRow($this->account('Owner', 'admin'), 'Inactive');
+
+        $this->signIn('admin')->assertRedirect(route('overview'));
+    }
 }

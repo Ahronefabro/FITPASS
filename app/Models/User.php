@@ -48,4 +48,15 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Whether the owner has set this account to Inactive in the staff
+     * directory. The directory matches accounts by name, as the sign-in does.
+     * Owners are left out so the owner can never lock themselves out.
+     */
+    public function isDeactivated(): bool
+    {
+        return $this->role !== 'Owner'
+            && Staff::where('name', $this->name)->where('status', 'Inactive')->exists();
+    }
 }
