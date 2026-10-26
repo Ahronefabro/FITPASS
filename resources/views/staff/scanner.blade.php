@@ -55,7 +55,7 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
     const record = @json(route('staff.scanner.record'));
     const token = @json(csrf_token());
@@ -71,15 +71,10 @@
     const SHOW_FOR = 3000;
     const IGNORE_SAME_CODE_FOR = 10000;
 
+    // While busy the camera keeps running but nothing is read from it.
     let busy = false;
-    let scanner = null;
     let last = {code: null, at: 0};
     let timer = null;
-
-    // html5-qrcode throws if it is asked to pause or resume when it is not in
-    // that state (still starting, already paused, or stopped), so these are safe to call any time.
-    const pause = () => { try { scanner?.pause(true); } catch (error) {} };
-    const resume = () => { try { scanner?.resume(); } catch (error) {} };
 
     const say = (text, ok = true) => {
         status.textContent = text;
@@ -103,7 +98,6 @@
         el('frame').hidden = false;
         el('scanned').hidden = true;
         say('Ready to scan');
-        resume();
     }
 
     function fill(member) {
@@ -129,10 +123,7 @@
 
     // Each scan records at once: in if they are out, out if they are in.
     function scan(value) {
-        if (ignored(value)) {
-            resume();
-            return;
-        }
+        if (ignored(value)) return;
 
         busy = true;
         clearTimeout(timer);
@@ -163,39 +154,53 @@
         el('code').value = '';
         // A typed code is deliberate, so it is never ignored as a repeat.
         last = {code: null, at: 0};
-        pause();
         scan(value);
     });
 
     const noCamera = text => {
-        scanner = null;
         el('frame').hidden = true;
         el('reader').innerHTML = `<p class="center grey" style="padding: 24px">${text} Type the member code below instead.</p>`;
         say('Camera off', false);
     };
 
+    // Each frame is read at the camera's full resolution, not at the size it is
+    // shown on screen: shrunk to the panel, a code held at arm's length is too
+    // blurry to read. The green frame is only a guide for where to hold it.
+    function watch(video) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d', {willReadFrequently: true});
+
+        const read = () => {
+            if (!busy && video.readyState >= video.HAVE_CURRENT_DATA && video.videoWidth) {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0);
+                const image = context.getImageData(0, 0, canvas.width, canvas.height);
+                const text = jsQR(image.data, image.width, image.height, {inversionAttempts: 'dontInvert'})?.data.trim();
+                // A code still held up after it was recorded is skipped quietly.
+                if (text && !ignored(text)) scan(text);
+            }
+            setTimeout(read, 100);
+        };
+        read();
+    }
+
     // The camera is a convenience: if it is missing or blocked, the code field still works.
-    if (!window.isSecureContext) {
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
         // Browsers only hand the camera to https:// pages and localhost.
         noCamera('The camera only works over https:// or on localhost.');
-    } else if (typeof Html5Qrcode === 'undefined') {
+    } else if (typeof jsQR === 'undefined') {
         noCamera('Scanner library did not load.');
     } else {
-        // QR codes only, and the browser's own detector where it has one: both make reads faster.
-        scanner = new Html5Qrcode('reader', {
-            verbose: false,
-            formatsToSupport: typeof Html5QrcodeSupportedFormats === 'undefined' ? undefined : [Html5QrcodeSupportedFormats.QR_CODE],
-            experimentalFeatures: {useBarCodeDetectorIfSupported: true},
-        });
-        // No qrbox: the whole picture is read. The video is cropped to fill the panel,
-        // which throws a qrbox off from the frame drawn on screen, so codes near its
-        // edge were missed. The frame is just a guide for where to hold the code.
-        scanner.start({facingMode: 'environment'}, {fps: 10}, text => {
-            text = text.trim();
-            // A code still held up after it was recorded: keep the camera running.
-            if (ignored(text)) return;
-            pause();
-            scan(text);
+        navigator.mediaDevices.getUserMedia({
+            video: {facingMode: 'environment', width: {ideal: 1280}, height: {ideal: 720}},
+        }).then(stream => {
+            const video = document.createElement('video');
+            video.muted = true;
+            video.playsInline = true;
+            video.srcObject = stream;
+            el('reader').append(video);
+            return video.play().then(() => watch(video));
         }).catch(() => noCamera('Camera unavailable or permission denied.'));
     }
 </script>
