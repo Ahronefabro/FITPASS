@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends(\App\Auth\Portal::forRole(auth()->user()->role) === 'staff' ? 'staff.layout' : 'layouts.app')
 
 @section('title', 'Account Settings')
 
