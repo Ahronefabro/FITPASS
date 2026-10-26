@@ -26,6 +26,7 @@
                 <small>Authorized personnel only</small>
             </div>
 
+            @if (session('status')) <p class="notice">{{ session('status') }}</p> @endif
             @error('username') <p class="error">{{ $message }}</p> @enderror
 
             <div class="field">
@@ -39,6 +40,8 @@
                 </button>
             </div>
             <button class="login-btn">LOG IN</button>
+
+            <p class="login-switch"><a href="{{ route('password.request') }}">Forgot password?</a></p>
         </form>
     </div>
 </body>
