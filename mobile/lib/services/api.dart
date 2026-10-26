@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -47,15 +48,23 @@ class CheckInRecord {
 
 /// Talks to the FitPass Laravel backend under /api.
 ///
-/// The server address is set at build time:
+/// The server address can be set at build time, e.g. for a real phone:
 ///   flutter run --dart-define=API_URL=http://192.168.1.10:8000
-/// It defaults to the Android emulator's address for the computer running
-/// `php artisan serve`.
+/// Without it, the app looks for `php artisan serve` on this computer: the
+/// Android emulator reaches it at 10.0.2.2, everything else at localhost.
 class Api {
   Api._();
 
-  static const String baseUrl =
-      String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:8000');
+  static final String baseUrl = _defaultBaseUrl();
+
+  static String _defaultBaseUrl() {
+    const configured = String.fromEnvironment('API_URL');
+    if (configured.isNotEmpty) return configured;
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000';
+    }
+    return 'http://localhost:8000';
+  }
 
   static const _tokenKey = 'api_token';
   static const _timeout = Duration(seconds: 15);
