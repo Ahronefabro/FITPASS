@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(php -v)",
+      "PowerShell(composer -V)",
+      "PowerShell(php artisan --version)",
+      "PowerShell(php artisan route:list 2>&1)",
+      "Bash(grep -oE \"\\(local|production\\)\\\\.\\(ERROR|WARNING\\): [^{]{0,160}\" /c/Users/USER/fitpass/storage/logs/laravel.log)",
+      "PowerShell(Get-ChildItem -Recurse C:\\\\Users\\\\USER\\\\fitpass\\\\resources\\\\views | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Users\\\\USER\\\\fitpass\\\\\",\"\"\\) })",
+      "PowerShell(Get-ChildItem -Recurse C:\\\\Users\\\\USER\\\\fitpass\\\\app, C:\\\\Users\\\\USER\\\\fitpass\\\\routes, C:\\\\Users\\\\USER\\\\fitpass\\\\database | Where-Object { -not $_.PSIsContainer } | ForEach-Object { \"{0}`t{1}\" -f $_.Length, $_.FullName.Replace\\(\"C:\\\\Users\\\\USER\\\\fitpass\\\\\",\"\"\\) })",
+      "PowerShell(Get-ChildItem -Recurse C:\\\\Users\\\\USER\\\\fitpass\\\\public | ForEach-Object { \"{0}`t{1}\" -f $_.Length, $_.FullName.Replace\\(\"C:\\\\Users\\\\USER\\\\fitpass\\\\\",\"\"\\) })",
+      "PowerShell(php C:\\\\Users\\\\USER\\\\fitpass\\\\artisan migrate:status)",
+      "PowerShell(php C:\\\\Users\\\\USER\\\\fitpass\\\\artisan tinker --execute=\"echo 'users=',App\\\\Models\\\\User::count\\(\\),' members=',App\\\\Models\\\\Member::count\\(\\),' staff=',App\\\\Models\\\\Staff::count\\(\\),' checkins=',App\\\\Models\\\\CheckIn::count\\(\\),' logs=',App\\\\Models\\\\AuditLog::count\\(\\), PHP_EOL; \\\\$u=App\\\\Models\\\\User::first\\(\\); echo \\\\$u ? \\\\$u->username.' / '.\\\\$u->role : 'no user';\")"
+    ]
+  }
+}
