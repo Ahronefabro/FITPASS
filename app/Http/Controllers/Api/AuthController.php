@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Member;
+use App\Models\Plan;
 use App\Models\StaffNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,19 +22,28 @@ use Throwable;
  */
 class AuthController extends Controller
 {
+    /** The plans a new member can pick at sign-up, with what each costs. */
+    public function plans(): JsonResponse
+    {
+        return response()->json([
+            'plans' => Plan::orderBy('id')->get(['name', 'price'])
+                ->map(fn (Plan $plan) => ['name' => $plan->name, 'price' => (float) $plan->price]),
+        ]);
+    }
+
     public function register(Request $request): JsonResponse
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', 'max:255', Rule::unique('members', 'email')],
             'contact' => 'nullable|string|max:32',
-            'plan' => ['required', Rule::in(array_keys(Member::PLANS))],
+            'plan' => ['required', Rule::exists('plans', 'name')],
             'password' => ['required', 'confirmed', PasswordRule::min(8)],
         ]);
 
         $member = Member::create($data + [
             'membership_type' => 'Monthly Unlimited',
-            'amount' => Member::PRICES[$data['plan']],
+            'amount' => Plan::priceOf($data['plan']),
         ]);
 
         AuditLog::record('signed up in the app', $member->name);

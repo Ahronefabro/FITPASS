@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\Member;
+use App\Models\Plan;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -14,7 +15,7 @@ class MemberController extends Controller
         $filter = $request->query('filter', 'All');
 
         $members = Member::query()
-            ->when(in_array($filter, array_keys(Member::PLANS), true), fn ($q) => $q->where('plan', $filter))
+            ->when(in_array($filter, Plan::names(), true), fn ($q) => $q->where('plan', $filter))
             ->when($filter === 'Expiring soon', fn ($q) => $q->expiringSoon())
             ->orderBy('name')
             ->simplePaginate(50)
@@ -25,7 +26,9 @@ class MemberController extends Controller
             'filter' => $filter,
             'view' => $request->query('view') === 'grid' ? 'grid' : 'table',
             'members' => $members,
-            'plans' => array_keys(Member::PLANS),
+            'plans' => Plan::names(),
+            // The owner edits plans and prices on this page.
+            'planRows' => Plan::withCount(['members' => fn ($q) => $q->withoutGlobalScope('approved')])->orderBy('id')->get(),
             'types' => Member::TYPES,
         ]);
     }
@@ -34,7 +37,7 @@ class MemberController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'plan' => ['required', Rule::in(array_keys(Member::PLANS))],
+            'plan' => ['required', Rule::exists('plans', 'name')],
             'membership_type' => ['required', Rule::in(Member::TYPES)],
             'amount' => 'required|numeric|min:0',
             'joined_at' => 'required|date',

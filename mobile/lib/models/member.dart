@@ -20,6 +20,9 @@ class Member {
   final DateTime? expiresAt;
   final int visitsThisMonth;
 
+  /// The switch on the profile screen, as saved on the server.
+  final bool notificationsEnabled;
+
   const Member({
     required this.id,
     required this.name,
@@ -34,6 +37,7 @@ class Member {
     this.joinedAt,
     this.expiresAt,
     required this.visitsThisMonth,
+    this.notificationsEnabled = true,
   });
 
   bool get isPending => status == 'Pending';
@@ -71,6 +75,7 @@ class Member {
       joinedAt: date(json['joined_at']),
       expiresAt: date(json['expires_at']),
       visitsThisMonth: json['visits_this_month'] as int? ?? 0,
+      notificationsEnabled: json['notifications_enabled'] as bool? ?? true,
     );
   }
 }

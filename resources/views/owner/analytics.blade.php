@@ -19,7 +19,7 @@
         <section class="panel">
             <div class="panel-head">
                 <h2>Revenue by Plan</h2>
-                <small>₱{{ number_format($revenueTotal) }} active</small>
+                <small>₱{{ number_format($revenueTotal) }} this month</small>
             </div>
             <div class="segments">
                 @foreach ($revenue as $plan => $percent)

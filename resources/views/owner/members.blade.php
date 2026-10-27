@@ -10,7 +10,7 @@
     <section class="panel alt">
         <h2>All Members</h2>
         <div class="toolbar">
-            @foreach (['All', 'Regular', 'Student', 'Senior', 'Expiring soon'] as $option)
+            @foreach (['All', ...$plans, 'Expiring soon'] as $option)
                 <a href="{{ route('members.index', ['filter' => $option, 'view' => $view]) }}" @class(['chip', 'active' => $filter === $option])>{{ $option }}</a>
             @endforeach
             <span class="spacer"></span>
@@ -60,6 +60,42 @@
         @endif
     </section>
 
+    {{-- What each plan costs. New sign-ups, at the desk and in the app, are charged these. --}}
+    <section class="panel alt">
+        <div class="panel-head">
+            <h2>Plans &amp; Prices</h2>
+            <button class="btn primary" data-open="add-plan">+ Add Plan</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <tr><th>Plan</th><th>Price (₱)</th><th>Colour</th><th>Members</th><th></th></tr>
+                @foreach ($planRows as $row)
+                    <tr>
+                        <td>{{ $row->name }}</td>
+                        <td colspan="2">
+                            <form method="POST" action="{{ route('plans.update', $row) }}" class="inline plan-form">
+                                @csrf @method('PATCH')
+                                <input type="number" name="price" min="0" step="0.01" value="{{ $row->price + 0 }}" required aria-label="{{ $row->name }} price">
+                                <input type="color" name="colour" value="{{ $row->colour }}" aria-label="{{ $row->name }} colour">
+                                <button class="btn small">Save</button>
+                            </form>
+                        </td>
+                        <td>{{ $row->members_count }}</td>
+                        <td class="right">
+                            {{-- Members keep the plan's name, so a plan in use cannot go. --}}
+                            @if ($row->members_count === 0)
+                                <form method="POST" action="{{ route('plans.destroy', $row) }}" data-confirm="Delete the {{ $row->name }} plan?">
+                                    @csrf @method('DELETE')
+                                    <button class="btn small danger">Delete</button>
+                                </form>
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </table>
+        </div>
+    </section>
+
     <dialog id="add-member">
         <h2>ADD MEMBER</h2>
         <form method="POST" action="{{ route('members.store') }}">
@@ -91,4 +127,23 @@
             </div>
         </form>
     </dialog>
+
+    <dialog id="add-plan">
+        <h2>ADD PLAN</h2>
+        <form method="POST" action="{{ route('plans.store') }}">
+            @csrf
+            @if ($errors->plan->any()) <p class="error">{{ $errors->plan->first() }}</p> @endif
+            <label>Name <input name="plan_name" value="{{ old('plan_name') }}" required></label>
+            <label>Price (₱) <input type="number" name="price" min="0" step="0.01" value="{{ old('price') }}" required></label>
+            <label>Chart colour <input type="color" name="colour" value="{{ old('colour', '#FFC107') }}"></label>
+
+            <div class="actions">
+                <button type="button" class="btn" data-close>Cancel</button>
+                <button class="btn primary">+ Add Plan</button>
+            </div>
+        </form>
+    </dialog>
+    @if ($errors->plan->any())
+        <script>document.getElementById('add-plan').showModal();</script>
+    @endif
 @endsection

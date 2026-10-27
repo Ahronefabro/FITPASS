@@ -64,9 +64,8 @@
 
         <section class="panel">
             <h2>System Status</h2>
-            <div class="row"><span>Database</span><b class="green">Online</b></div>
-            @foreach (['QR Scanner', 'Payment Gateway', 'Backup'] as $system)
-                <div class="row"><span>{{ $system }}</span><span class="grey">Not connected</span></div>
+            @foreach ($systems as [$system, $state, $tone])
+                <div class="row"><span>{{ $system }}</span><b class="{{ $tone }}">{{ $state }}</b></div>
             @endforeach
         </section>
     </div>

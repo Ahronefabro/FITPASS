@@ -64,6 +64,17 @@ class MemberController extends Controller
         return response()->json(['message' => 'Password updated.']);
     }
 
+    /** The switches on the app's profile screen. */
+    public function updateSettings(Request $request): JsonResponse
+    {
+        $data = $request->validate(['notifications_enabled' => 'required|boolean']);
+
+        $member = $request->user();
+        $member->update($data);
+
+        return response()->json(['member' => $member->toApp()]);
+    }
+
     public function updatePhoto(Request $request): JsonResponse
     {
         $request->validate([

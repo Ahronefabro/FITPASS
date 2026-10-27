@@ -47,6 +47,21 @@ class CheckInRecord {
   }
 }
 
+/// A membership plan a new member can pick, with its monthly price.
+class Plan {
+  final String name;
+  final double price;
+
+  const Plan({required this.name, required this.price});
+
+  factory Plan.fromJson(Map<String, dynamic> json) {
+    return Plan(
+      name: json['name'] as String,
+      price: (json['price'] as num).toDouble(),
+    );
+  }
+}
+
 /// Talks to the FitPass Laravel backend under /api.
 ///
 /// The server address can be set at build time, e.g. for a real phone:
@@ -92,6 +107,14 @@ class Api {
   }
 
   // ---- Accounts ----
+
+  /// The plans on offer and their prices, as the owner has set them.
+  static Future<List<Plan>> plans() async {
+    final body = await _send('GET', '/plans');
+    return (body['plans'] as List)
+        .map((e) => Plan.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
 
   static Future<String> register({
     required String name,
@@ -149,6 +172,16 @@ class Api {
     });
   }
 
+  /// Saves the profile screen's notification switch.
+  static Future<Member> updateSettings({
+    required bool notificationsEnabled,
+  }) async {
+    final body = await _send('PUT', '/me/settings', body: {
+      'notifications_enabled': notificationsEnabled,
+    });
+    return Member.fromJson(body['member'] as Map<String, dynamic>);
+  }
+
   // ---- Profile picture ----
 
   /// Uploads a new profile picture and returns the member with its address.
@@ -204,7 +237,7 @@ class Api {
   static Future<Map<String, dynamic>> _send(
     String method,
     String path, {
-    Map<String, String>? body,
+    Map<String, Object?>? body,
     Map<String, String>? query,
   }) async {
     final uri = Uri.parse('$baseUrl/api$path').replace(queryParameters: query);

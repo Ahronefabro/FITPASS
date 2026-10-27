@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MemberPasswordResetController;
 use App\Http\Controllers\PasswordResetController;
+use App\Http\Controllers\PlanController;
 use App\Http\Controllers\Staff\CheckInController as StaffCheckInController;
 use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
 use App\Http\Controllers\Staff\ManualTimeController;
@@ -61,6 +62,10 @@ Route::middleware(['auth', 'portal:owner'])->group(function () {
 
     Route::get('/members', [MemberController::class, 'index'])->name('members.index');
     Route::post('/members', [MemberController::class, 'store'])->name('members.store');
+
+    Route::post('/plans', [PlanController::class, 'store'])->name('plans.store');
+    Route::patch('/plans/{plan}', [PlanController::class, 'update'])->name('plans.update');
+    Route::delete('/plans/{plan}', [PlanController::class, 'destroy'])->name('plans.destroy');
 
     Route::get('/staff', [StaffController::class, 'index'])->name('staff.index');
     Route::post('/staff', [StaffController::class, 'store'])->name('staff.store');

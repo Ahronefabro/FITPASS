@@ -24,22 +24,17 @@ class Member extends Authenticatable
 {
     use HasApiTokens, Notifiable;
 
-    // Plan name => chart colour
-    public const PLANS = ['Regular' => '#00FF66', 'Student' => '#40C4FF', 'Senior' => '#2196F3'];
-
+    // The plans themselves, and their prices, are in the plans table (Plan).
     public const TYPES = ['Monthly Unlimited', 'Quarterly'];
-
-    /** What each plan costs, used when staff sign someone up at the front desk. */
-    public const PRICES = ['Regular' => 1000, 'Student' => 800, 'Senior' => 700];
 
     /** Where profile pictures are kept, on the private local disk. */
     public const PHOTO_DIR = 'member-photos';
 
-    protected $fillable = ['name', 'plan', 'membership_type', 'contact', 'email', 'password', 'qr_code', 'photo', 'amount', 'joined_at', 'expires_at'];
+    protected $fillable = ['name', 'plan', 'membership_type', 'contact', 'email', 'password', 'qr_code', 'photo', 'notifications_enabled', 'amount', 'joined_at', 'expires_at'];
 
     protected $hidden = ['password'];
 
-    protected $casts = ['joined_at' => 'date', 'expires_at' => 'date', 'password' => 'hashed'];
+    protected $casts = ['joined_at' => 'date', 'expires_at' => 'date', 'password' => 'hashed', 'notifications_enabled' => 'boolean'];
 
     protected static function booted(): void
     {
@@ -113,7 +108,7 @@ class Member extends Authenticatable
     public function approve(): void
     {
         $this->update([
-            'amount' => self::PRICES[$this->plan],
+            'amount' => Plan::priceOf($this->plan),
             'joined_at' => today(),
             'expires_at' => today()->addMonth(),
         ]);
@@ -188,6 +183,8 @@ class Member extends Authenticatable
             'joined_at' => $this->joined_at?->toDateString(),
             'expires_at' => $this->expires_at?->toDateString(),
             'visits_this_month' => $this->visits_this_month,
+            // A fresh model has no value until it is read back, and the column defaults to on.
+            'notifications_enabled' => $this->notifications_enabled ?? true,
         ];
     }
 }

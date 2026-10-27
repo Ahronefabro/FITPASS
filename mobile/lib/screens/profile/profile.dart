@@ -25,7 +25,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _photoBusy = false;
 
   bool _personalInfoExpanded = false;
-  bool _notificationsEnabled = true;
+  late bool _notificationsEnabled = widget.member.notificationsEnabled;
+  bool _notificationsSaving = false;
 
   // ---- Change password controllers/state ---- //
   final _currentPasswordController = TextEditingController();
@@ -76,11 +77,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // TODO: persist this to MySQL backend API (e.g. users.notificationsEnabled)
+  /// Flips the switch at once, saves it, and flips it back if saving fails.
   Future<void> _toggleNotifications(bool value) async {
+    if (_notificationsSaving) return;
     setState(() {
       _notificationsEnabled = value;
+      _notificationsSaving = true;
     });
+    try {
+      final member = await Api.updateSettings(notificationsEnabled: value);
+      if (!mounted) return;
+      setState(() => _member = member);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _notificationsEnabled = !value);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _notificationsSaving = false);
+    }
   }
 
   // ---- Profile picture ----

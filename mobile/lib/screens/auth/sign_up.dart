@@ -17,7 +17,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   bool _isLoading = false;
 
   String? _selectedMemberType;
-  static const List<String> _memberTypes = ['Student', 'Senior', 'Regular'];
+
+  /// The plans and prices the owner has set, loaded from the server.
+  List<Plan> _plans = const [];
+  bool _plansLoading = true;
+  String? _plansError;
 
   static const Color _bgColor = Color(0xFF0A0A0A);
   static const Color _fieldColor = Color(0xFF262626);
@@ -29,6 +33,29 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlans();
+  }
+
+  Future<void> _loadPlans() async {
+    setState(() {
+      _plansLoading = true;
+      _plansError = null;
+    });
+    try {
+      final plans = await Api.plans();
+      if (!mounted) return;
+      setState(() => _plans = plans);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _plansError = e.message);
+    } finally {
+      if (mounted) setState(() => _plansLoading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -335,6 +362,22 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   }
 
   Widget _buildMemberTypeDropdown() {
+    // Without the plans there is nothing to pick, so offer to try again.
+    if (_plansError != null) {
+      return Row(
+        children: [
+          Expanded(
+            child: Text(_plansError!,
+                style: const TextStyle(color: _hintColor, fontSize: 13)),
+          ),
+          TextButton(
+            onPressed: _loadPlans,
+            child: const Text('Retry', style: TextStyle(color: _greenColor)),
+          ),
+        ],
+      );
+    }
+
     return Container(
       height: 54,
       padding: const EdgeInsets.only(left: 22, right: 16),
@@ -346,17 +389,20 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         child: DropdownButton<String>(
           value: _selectedMemberType,
           isExpanded: true,
-          hint: const Text(
-            'Select Member type',
-            style: TextStyle(color: _hintColor, fontSize: 14),
+          hint: Text(
+            _plansLoading ? 'Loading plans…' : 'Select Member type',
+            style: const TextStyle(color: _hintColor, fontSize: 14),
           ),
           icon: const Icon(Icons.keyboard_arrow_down, color: _hintColor),
           dropdownColor: _fieldColor,
           style: const TextStyle(color: Colors.white, fontSize: 14),
           borderRadius: BorderRadius.circular(16),
-          items: _memberTypes
-              .map((type) =>
-                  DropdownMenuItem<String>(value: type, child: Text(type)))
+          items: _plans
+              .map((plan) => DropdownMenuItem<String>(
+                    value: plan.name,
+                    child: Text(
+                        '${plan.name} · ₱${plan.price.toStringAsFixed(plan.price % 1 == 0 ? 0 : 2)}/month'),
+                  ))
               .toList(),
           onChanged: (value) {
             setState(() => _selectedMemberType = value);

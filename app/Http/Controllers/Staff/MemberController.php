@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Staff;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Member;
+use App\Models\Plan;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,9 +20,9 @@ class MemberController extends Controller
         return view('staff.members', [
             'members' => $members,
             'pending' => Member::pending()->oldest()->get(),
-            'plans' => array_keys(Member::PLANS),
+            'plans' => Plan::names(),
             'methods' => Payment::METHODS,
-            'prices' => Member::PRICES,
+            'prices' => Plan::prices(),
             'cards' => [
                 ['Total Members', Member::count(), Member::whereDate('joined_at', '>=', now()->startOfMonth())->count().' joined this month'],
                 ['Active', Member::active()->count(), Member::expiringSoon()->count().' expiring soon'],
@@ -39,7 +40,7 @@ class MemberController extends Controller
         // so the rest of the membership starts on sensible front-desk defaults.
         $member = Member::create($data + [
             'membership_type' => 'Monthly Unlimited',
-            'amount' => Member::PRICES[$data['plan']],
+            'amount' => Plan::priceOf($data['plan']),
             'joined_at' => today(),
             'expires_at' => today()->addMonth(),
         ]);
@@ -105,7 +106,7 @@ class MemberController extends Controller
     {
         return $request->validate([
             'name' => 'required|string|max:255',
-            'plan' => ['required', Rule::in(array_keys(Member::PLANS))],
+            'plan' => ['required', Rule::exists('plans', 'name')],
             'contact' => 'nullable|string|max:32',
         ]);
     }

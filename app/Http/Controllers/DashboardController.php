@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\CheckIn;
 use App\Models\Member;
+use App\Models\Payment;
+use App\Models\Plan;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -17,6 +19,9 @@ class DashboardController extends Controller
         'this_month' => 'This Month',
         'last_month' => 'Last Month',
     ];
+
+    /** Revenue that belongs to no plan, and its chart colour. */
+    private const EXTRA_REVENUE = ['Walk-in' => '#9E9E9E', 'Other' => '#616161'];
 
     public function overview(Request $request)
     {
@@ -40,16 +45,17 @@ class DashboardController extends Controller
             ->map(fn ($days) => $days->sum(fn ($day) => $perDay[$day->toDateString()] ?? 0));
 
         // Share of members on each plan, plus the donut chart gradient.
+        $colours = Plan::colours();
         $total = max(Member::count(), 1);
         $counts = Member::selectRaw('plan, COUNT(*) as total')->groupBy('plan')->pluck('total', 'plan');
-        $byPlan = collect(Member::PLANS)->map(fn ($colour, $plan) => (int) round(($counts[$plan] ?? 0) / $total * 100));
+        $byPlan = collect($colours)->map(fn ($colour, $plan) => (int) round(($counts[$plan] ?? 0) / $total * 100));
 
         $at = 0;
-        $stops = $byPlan->map(function ($percent, $plan) use (&$at) {
+        $stops = $byPlan->map(function ($percent, $plan) use (&$at, $colours) {
             $from = $at;
             $at += $percent;
 
-            return Member::PLANS[$plan]." {$from}% {$at}%";
+            return $colours[$plan]." {$from}% {$at}%";
         })->push("#1E1E1E {$at}% 100%")->implode(', ');
 
         return view('owner.overview', [
@@ -61,9 +67,41 @@ class DashboardController extends Controller
             'topDays' => CheckIn::selectRaw('DATE(time_in) as day, COUNT(*) as total')
                 ->groupBy('day')->orderByDesc('total')->limit(6)->pluck('total', 'day'),
             'byPlan' => $byPlan,
-            'colours' => Member::PLANS,
+            'colours' => $colours,
             'donut' => "conic-gradient({$stops})",
+            'systems' => $this->systemStatus(),
         ]);
+    }
+
+    /**
+     * The System Status panel: each row is [label, what to show, colour class],
+     * read from what the system last actually did.
+     */
+    private function systemStatus(): array
+    {
+        $lastScan = CheckIn::where('method', 'QR Code')->latest('time_in')->value('time_in');
+        $lastPayment = Payment::latest('created_at')->value('created_at');
+        $lastCheckIn = CheckIn::latest('time_in')->value('time_in');
+
+        // Recent activity reads green; anything older than a day reads grey.
+        $since = fn ($time, string $none) => $time
+            ? [Carbon::parse($time)->diffForHumans(), Carbon::parse($time)->gt(now()->subDay()) ? 'green' : 'grey']
+            : [$none, 'grey'];
+
+        // The log mailer only writes emails to storage/logs, so nobody receives them.
+        $mailer = config('mail.default');
+        $mail = $mailer === 'log' || $mailer === 'array'
+            ? ['Not sending (log only)', 'orange']
+            : ['Sending via '.(config("mail.mailers.{$mailer}.host") ?: $mailer), 'green'];
+
+        return [
+            // Reaching this page at all means the database answered.
+            ['Database', 'Online', 'green'],
+            ['QR Scanner', ...$since($lastScan, 'No scans yet')],
+            ['Last check-in', ...$since($lastCheckIn, 'None yet')],
+            ['Last payment', ...$since($lastPayment, 'None yet')],
+            ['Email', ...$mail],
+        ];
     }
 
     public function analytics()
@@ -73,11 +111,21 @@ class DashboardController extends Controller
         $week = collect(CarbonPeriod::create(today()->subDays(6), today())->toArray())
             ->mapWithKeys(fn ($day) => [$day->format('D') => $perDay[$day->toDateString()] ?? 0]);
 
-        // Revenue share per plan, from active memberships.
-        $sums = Member::active()->selectRaw('plan, SUM(amount) as total')->groupBy('plan')->pluck('total', 'plan');
+        // Revenue share per plan, from the payments taken this month. Walk-ins
+        // have a share of their own; a payment whose member was since deleted
+        // counts under Other.
+        $sums = Payment::query()
+            ->leftJoin('members', 'members.id', '=', 'payments.member_id')
+            ->where('payments.paid_on', '>=', now()->startOfMonth()->toDateString())
+            ->selectRaw("CASE WHEN payments.kind = 'Walk-in' THEN 'Walk-in' ELSE COALESCE(members.plan, 'Other') END as bucket, SUM(payments.amount) as total")
+            ->groupBy('bucket')
+            ->pluck('total', 'bucket');
         $revenueTotal = (float) $sums->sum();
-        $revenue = collect(Member::PLANS)->map(
-            fn ($colour, $plan) => $revenueTotal ? (int) round(($sums[$plan] ?? 0) / $revenueTotal * 100) : 0
+
+        // Every plan shows, even at 0%; Walk-in and Other only when they took money.
+        $colours = Plan::colours() + collect(self::EXTRA_REVENUE)->only($sums->keys())->all();
+        $revenue = collect($colours)->map(
+            fn ($colour, $bucket) => $revenueTotal ? (int) round(($sums[$bucket] ?? 0) / $revenueTotal * 100) : 0
         );
 
         // The five busiest hours of the last 30 days.
@@ -108,7 +156,7 @@ class DashboardController extends Controller
             'week' => $week,
             'revenue' => $revenue,
             'revenueTotal' => $revenueTotal,
-            'colours' => Member::PLANS,
+            'colours' => $colours,
             'peak' => $peak,
             'growth' => $growth,
             'points' => $points,

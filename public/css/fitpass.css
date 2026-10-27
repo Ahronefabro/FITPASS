@@ -86,6 +86,8 @@ table.plain th { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 .btn.primary:hover { background: #00E65C; color: #000; }
 .btn.small { padding: 3px 8px; font-size: 10px; }
 .inline { display: inline-flex; align-items: center; gap: 6px; }
+.plan-form input[type=number] { width: 110px; padding: 5px 8px; background: #1E1E1E; border: 1px solid rgba(255, 255, 255, .24); border-radius: 6px; }
+.plan-form input[type=color] { width: 34px; height: 28px; padding: 0; background: none; border: 0; cursor: pointer; }
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid color-mix(in srgb, currentColor 50%, transparent); border-radius: 12px; background: color-mix(in srgb, currentColor 10%, transparent); font-size: 10px; font-weight: 700; white-space: nowrap; }
 .badge::before, .dot { content: ''; width: 6px; height: 6px; flex: none; border-radius: 50%; background: currentColor; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
