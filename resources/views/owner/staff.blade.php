@@ -2,7 +2,7 @@
 @section('title', 'Staff Management')
 
 @section('content')
-    @php $tones = ['Active' => 'green', 'Inactive' => 'red', 'Off Duty' => 'grey']; @endphp
+    @php $tones = ['Active' => 'green', 'Inactive' => 'red']; @endphp
 
     <h1>Staff Management</h1>
     @include('partials.cards')

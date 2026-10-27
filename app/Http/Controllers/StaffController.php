@@ -31,8 +31,8 @@ class StaffController extends Controller
             'statuses' => Staff::STATUSES,
             'cards' => [
                 ['Total Staff', Staff::count(), Staff::where('created_at', '>=', now()->startOfMonth())->count().' added this month'],
-                ['Active', Staff::where('status', 'Active')->count(), 'On shift now'],
-                ['Off Duty', Staff::where('status', 'Off Duty')->count(), 'Not on shift', true],
+                ['Active', Staff::where('status', 'Active')->count(), 'Can sign in'],
+                ['Inactive', Staff::where('status', 'Inactive')->count(), 'Cannot sign in', true],
                 ['Admins', Staff::where('role', 'Admin')->count(), 'Full access'],
             ],
         ]);

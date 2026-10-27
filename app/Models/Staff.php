@@ -11,7 +11,8 @@ class Staff extends Model
     /** The same names the sign-in uses, so a role can be copied straight to the login. */
     public const ROLES = ['Staff', 'Front Desk', 'Trainers', 'Admin'];
 
-    public const STATUSES = ['Active', 'Inactive', 'Off Duty'];
+    /** Inactive accounts cannot sign in. */
+    public const STATUSES = ['Active', 'Inactive'];
 
     protected $table = 'staff';
 
