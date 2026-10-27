@@ -8,7 +8,7 @@
     @include('partials.cards')
 
     <div class="toolbar">
-        @foreach (['All', 'Front Desk', 'Trainers', 'Admins'] as $option)
+        @foreach (['All', ...$roles] as $option)
             <a href="{{ route('staff.index', ['filter' => $option]) }}" @class(['chip', 'active' => $filter === $option])>{{ $option }}</a>
         @endforeach
         <span class="spacer"></span>
@@ -18,15 +18,19 @@
     <section class="panel alt">
         <div class="table-wrap">
             <table>
-                <tr><th>Staff</th><th>Role</th><th>Shift</th><th>Status</th><th>Last login</th><th></th></tr>
+                <tr><th>Staff</th><th>Username</th><th>Role</th><th>Shift</th><th>Status</th><th>Last login</th><th></th></tr>
                 @forelse ($staff as $person)
                     <tr>
                         <td><span class="who"><span class="avatar">{{ $person->initials }}</span>{{ $person->name }}</span></td>
+                        {{-- Rows from before logins were linked have none and cannot sign in. --}}
+                        <td>@if ($person->user) {{ $person->user->username }} @else <span class="badge grey">NO LOGIN</span> @endif</td>
                         <td>{{ $person->role }}</td>
                         <td>{{ $person->shift_label }}</td>
                         <td><span @class(['badge', $tones[$person->status] ?? 'grey'])>{{ strtoupper($person->status) }}</span></td>
                         <td>{{ $person->last_login_at?->format('M j, g:i A') ?? 'Never' }}</td>
                         <td class="right">
+                        {{-- Your own login, or an owner's, is not changed from here. --}}
+                        @unless ($person->user && ($person->user->role === 'Owner' || $person->user->is(auth()->user())))
                             {{-- Pencil menu: status and delete --}}
                             <details class="menu">
                                 <summary title="Edit status"><span class="material-symbols-outlined">edit</span></summary>
@@ -59,10 +63,11 @@
                                     </form>
                                 </div>
                             </details>
+                        @endunless
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6">No staff in this group.</td></tr>
+                    <tr><td colspan="7">No staff in this group.</td></tr>
                 @endforelse
             </table>
         </div>
@@ -75,6 +80,9 @@
             @if ($errors->any()) <p class="error">{{ $errors->first() }}</p> @endif
 
             <label>Full name <input name="name" value="{{ old('name') }}" required></label>
+            <label>Username <input name="username" value="{{ old('username') }}" autocomplete="off" required></label>
+            <label>Email <input type="email" name="email" value="{{ old('email') }}" autocomplete="off" required></label>
+            <label>Starting password <input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
             <label>Role
                 <select name="role">
                     @foreach ($roles as $role)

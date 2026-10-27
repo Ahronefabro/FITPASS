@@ -144,7 +144,7 @@ class PortalAccessTest extends TestCase
 
         $this->post(route('staff.store'), [
             'name' => 'Sneaky Hire',
-            'role' => 'Admins',
+            'role' => 'Admin',
             'shift_start' => '06:00',
             'status' => 'Active',
         ])->assertRedirect(route('staff.dashboard'));
@@ -265,13 +265,7 @@ class PortalAccessTest extends TestCase
 
     public function test_a_sign_in_stamps_the_matching_staff_directory_row(): void
     {
-        $user = $this->account('Staff', 'frontdesk');
-        $row = Staff::create([
-            'name' => $user->name,
-            'role' => 'Staff',
-            'shift_start' => '06:00',
-            'status' => 'Active',
-        ]);
+        $row = $this->directoryRow($this->account('Staff', 'frontdesk'), 'Active');
 
         $this->assertNull($row->last_login_at);
 
@@ -286,7 +280,7 @@ class PortalAccessTest extends TestCase
 
     private function directoryRow(User $user, string $status): Staff
     {
-        return Staff::create([
+        return $user->staff()->create([
             'name' => $user->name,
             'role' => 'Staff',
             'shift_start' => '06:00',

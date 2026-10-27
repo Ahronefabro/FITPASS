@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -49,14 +50,19 @@ class User extends Authenticatable
         ];
     }
 
+    /** This account's row in the owner's staff directory, if it has one. */
+    public function staff(): HasOne
+    {
+        return $this->hasOne(Staff::class);
+    }
+
     /**
      * Whether the owner has set this account to Inactive in the staff
-     * directory. The directory matches accounts by name, as the sign-in does.
-     * Owners are left out so the owner can never lock themselves out.
+     * directory. Owners are left out so the owner can never lock themselves out.
      */
     public function isDeactivated(): bool
     {
         return $this->role !== 'Owner'
-            && Staff::where('name', $this->name)->where('status', 'Inactive')->exists();
+            && $this->staff()->where('status', 'Inactive')->exists();
     }
 }

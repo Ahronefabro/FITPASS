@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Auth\Portal;
 use App\Models\AuditLog;
-use App\Models\Staff;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -57,7 +56,7 @@ class AuthController extends Controller
         AuditLog::record("signed in to the {$portal} portal");
 
         // Keep the owner's staff directory in step with who actually signed in.
-        Staff::where('name', $user->name)->update(['last_login_at' => now()]);
+        $user->staff()->update(['last_login_at' => now()]);
 
         return redirect()->to($this->landingUrl($request, $user, $portal));
     }

@@ -18,11 +18,11 @@ class DatabaseSeeder extends Seeder
     {
         // A login for each portal. Change the passwords before going live.
         $this->account('owner@fitpass.test', 'Super Admin', 'admin', 'Owner');
-        $this->account('staff@fitpass.test', 'Front Desk Staff', 'staff', 'Staff');
+        $staff = $this->account('staff@fitpass.test', 'Front Desk Staff', 'staff', 'Staff');
 
         Staff::firstOrCreate(
-            ['name' => 'Front Desk Staff'],
-            ['role' => 'Staff', 'shift_start' => '06:00', 'status' => 'Active'],
+            ['user_id' => $staff->id],
+            ['name' => $staff->name, 'role' => 'Staff', 'shift_start' => '06:00', 'status' => 'Active'],
         );
 
         $fresh = ! Member::exists();
@@ -47,14 +47,14 @@ class DatabaseSeeder extends Seeder
         }
     }
 
-    private function account(string $email, string $name, string $username, string $role): void
+    private function account(string $email, string $name, string $username, string $role): User
     {
-        User::firstOrNew(['email' => $email])->forceFill([
+        return tap(User::firstOrNew(['email' => $email])->forceFill([
             'name' => $name,
             'username' => $username,
             'role' => $role,
             'password' => Hash::make('password'),
-        ])->save();
+        ]))->save();
     }
 
     /** Sample data from the Flutter screens. Delete this for an empty system. */
@@ -95,13 +95,6 @@ class DatabaseSeeder extends Seeder
                     'method' => $i % 2 ? 'QR Code' : 'Manual',
                 ]);
             }
-
-            Staff::create([
-                'name' => $person[0],
-                'role' => 'Front Desk',
-                'shift_start' => '06:00',
-                'status' => $i % 5 === 0 ? 'Off Duty' : 'Active',
-            ]);
         }
     }
 
