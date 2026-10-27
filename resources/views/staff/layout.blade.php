@@ -1,12 +1,12 @@
 @php
     $nav = [
+        ['staff.scanner', 'qr_code_scanner', 'Scanner'],
         ['staff.dashboard', 'dashboard_customize', 'Dashboard'],
         ['staff.checkins', 'login', 'Check-ins'],
         ['staff.payments', 'payments', 'Payments'],
         ['staff.members', 'group', 'Members'],
         ['staff.manual-time', 'schedule', 'Manual Time in/out'],
         ['staff.notifications', 'notifications', 'Notifications'],
-        ['staff.scanner', 'qr_code_scanner', 'Scanner'],
     ];
 @endphp
 <!DOCTYPE html>
