@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/member.dart';
 import '../../services/api.dart';
+import '../../services/notifications.dart';
 import '../auth/log_in.dart';
 import '../history/history.dart';
 import '../membership/membership.dart';
@@ -33,6 +34,8 @@ class _DashboardState extends State<Dashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    Notifications.prepare(widget.member);
+    Notifications.onMember(widget.member);
     // The member may be the copy saved at the last login, if the app opened
     // offline; bring it up to date quietly once the server answers.
     _refresh(quiet: true);
@@ -49,6 +52,7 @@ class _DashboardState extends State<Dashboard>
   Future<void> _refresh({bool quiet = false}) async {
     try {
       final member = await Api.me();
+      Notifications.onMember(member);
       if (!mounted) return;
       setState(() {
         _member = member;

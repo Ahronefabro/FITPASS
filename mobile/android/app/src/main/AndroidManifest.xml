@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Talks to the FitPass Laravel backend. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+: payment confirmed, membership ending soon. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <!-- Cleartext lets the app reach `php artisan serve` over plain http while
          developing. Turn it off once the backend is served over https. -->

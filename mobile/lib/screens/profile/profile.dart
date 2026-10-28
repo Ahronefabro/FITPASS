@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../models/member.dart';
 import '../../services/api.dart';
+import '../../services/notifications.dart';
 import '../../widgets/member_avatar.dart';
 import '../auth/log_in.dart';
 
@@ -86,6 +87,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
     try {
       final member = await Api.updateSettings(notificationsEnabled: value);
+      // Turning them on is when to ask the phone's permission, if not yet asked.
+      if (value) await Notifications.prepare(member);
       if (!mounted) return;
       setState(() => _member = member);
     } on ApiException catch (e) {
