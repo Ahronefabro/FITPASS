@@ -20,7 +20,7 @@
                 @forelse ($payments as $payment)
                     <tr>
                         <td>{{ $payment->name }}</td>
-                        <td>{{ $payment->paid_on->format('m-d-y') }}</td>
+                        <td>{{ $payment->paid_on->format('M j, Y') }}</td>
                         <td>{{ $payment->kind }}</td>
                         <td>₱{{ number_format($payment->amount, 2) }}</td>
                         <td><span @class(['badge', $payment->method === 'Gcash' ? 'sky' : 'green'])>{{ $payment->method }}</span></td>

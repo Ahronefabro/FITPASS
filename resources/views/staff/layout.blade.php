@@ -15,12 +15,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Dashboard') · FitPass Staff</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=block">
     <link rel="stylesheet" href="{{ asset('css/fitpass.css') }}">
 </head>
 <body>
 <div class="shell">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <a class="brand" href="{{ route('staff.dashboard') }}">
             <img src="{{ asset('images/logo.png') }}" alt="" onerror="this.remove()">
             <span><b>FIT<em>PASS</em></b><small>GYM</small></span>
@@ -36,6 +38,10 @@
 
     <div class="main">
         <header class="topbar">
+            <button type="button" class="icon-btn nav-toggle" data-nav-toggle aria-controls="sidebar" aria-label="Open menu">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <span class="today">{{ now()->format('l, F j') }}</span>
             <details class="menu user-menu">
                 <summary class="user">
                     <span class="avatar"><span class="material-symbols-outlined">person</span></span>
@@ -55,6 +61,7 @@
 
         <main class="content">@yield('content')</main>
     </div>
+    <div class="scrim" data-nav-toggle></div>
 </div>
 
 @include('partials.logout-dialog')
@@ -77,11 +84,26 @@
         if (opener) document.getElementById(opener.dataset.open).showModal();
         if (e.target.closest('[data-close]')) e.target.closest('dialog').close();
         if (e.target.matches('dialog.logout') && outside(e)) e.target.close();
+        // On phones the sidebar slides in over the page.
+        if (e.target.closest('[data-nav-toggle]')) document.body.classList.toggle('nav-open');
     });
 
     // Forms with data-confirm ask before submitting.
     document.addEventListener('submit', e => {
         if (e.target.dataset.confirm && !confirm(e.target.dataset.confirm)) e.preventDefault();
+    });
+
+    // On phones each table row is shown as a card, so label every cell with its column heading.
+    document.querySelectorAll('.table-wrap table').forEach(table => {
+        const heads = [...table.rows[0].cells].map(th => th.textContent.trim());
+        [...table.rows].slice(1).forEach(row => {
+            let column = 0;
+            [...row.cells].forEach(td => {
+                td.dataset.label = heads[column] ?? '';
+                td.classList.toggle('blank', !td.children.length && !td.textContent.trim());
+                column += td.colSpan;
+            });
+        });
     });
 
     @if ($errors->any())
