@@ -18,3 +18,5 @@ ios/Flutter/flutter_export_environment.sh
 **/Flutter/ephemeral/
 **/GeneratedPluginRegistrant.*
 android/app/.cxx/
+# Widget Preview related
+.widget_preview/
