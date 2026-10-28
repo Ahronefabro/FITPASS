@@ -93,12 +93,17 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
+  /// The member to open the dashboard for, or null to show the landing
+  /// screen. A saved login stays until the member logs out or the server
+  /// turns the token down; being offline only means showing the last copy.
   Future<Member?> _restoreMember() async {
     if (!await Api.restoreSession()) return null;
     try {
       return await Api.me();
-    } on ApiException {
-      return null;
+    } on ApiException catch (e) {
+      // A 401 has already cleared the saved login.
+      if (e.isUnauthorized) return null;
+      return Api.savedMember();
     }
   }
 

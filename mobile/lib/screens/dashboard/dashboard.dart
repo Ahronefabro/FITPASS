@@ -33,6 +33,9 @@ class _DashboardState extends State<Dashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    // The member may be the copy saved at the last login, if the app opened
+    // offline; bring it up to date quietly once the server answers.
+    _refresh(quiet: true);
   }
 
   @override

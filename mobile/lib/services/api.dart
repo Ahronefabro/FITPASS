@@ -83,6 +83,9 @@ class Api {
   }
 
   static const _tokenKey = 'api_token';
+
+  /// The last member the server sent, so the app can open without the network.
+  static const _memberKey = 'api_member';
   static const _timeout = Duration(seconds: 15);
 
   static String? _token;
@@ -100,10 +103,33 @@ class Api {
     _token = token;
     final prefs = await SharedPreferences.getInstance();
     if (token == null) {
+      // Signed out: forget who it was, too.
       await prefs.remove(_tokenKey);
+      await prefs.remove(_memberKey);
     } else {
       await prefs.setString(_tokenKey, token);
     }
+  }
+
+  /// The member saved with the login, or null when there is none to use.
+  static Future<Member?> savedMember() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_memberKey);
+    if (_token == null || saved == null) return null;
+    try {
+      return Member.fromJson(jsonDecode(saved) as Map<String, dynamic>);
+    } catch (_) {
+      // Saved by an older version of the app; the next call replaces it.
+      return null;
+    }
+  }
+
+  /// Reads the member out of an answer and keeps a copy for [savedMember].
+  static Future<Member> _member(Map<String, dynamic> body) async {
+    final json = body['member'] as Map<String, dynamic>;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_memberKey, jsonEncode(json));
+    return Member.fromJson(json);
   }
 
   // ---- Accounts ----
@@ -142,7 +168,7 @@ class Api {
       'device_name': 'fitpass-mobile',
     });
     await _saveToken(body['token'] as String);
-    return Member.fromJson(body['member'] as Map<String, dynamic>);
+    return _member(body);
   }
 
   static Future<void> logout() async {
@@ -179,7 +205,7 @@ class Api {
     final body = await _send('PUT', '/me/settings', body: {
       'notifications_enabled': notificationsEnabled,
     });
-    return Member.fromJson(body['member'] as Map<String, dynamic>);
+    return _member(body);
   }
 
   // ---- Profile picture ----
@@ -196,19 +222,19 @@ class Api {
           ));
 
     final body = await _receive(request, timeout: const Duration(seconds: 60));
-    return Member.fromJson(body['member'] as Map<String, dynamic>);
+    return _member(body);
   }
 
   static Future<Member> removePhoto() async {
     final body = await _send('DELETE', '/me/photo');
-    return Member.fromJson(body['member'] as Map<String, dynamic>);
+    return _member(body);
   }
 
   // ---- Member data ----
 
   static Future<Member> me() async {
     final body = await _send('GET', '/me');
-    return Member.fromJson(body['member'] as Map<String, dynamic>);
+    return _member(body);
   }
 
   static Future<List<CheckInRecord>> checkIns({
