@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
+/**
+ * @property-read User|null $user
+ */
 class Staff extends Model
 {
     /** The same names the sign-in uses, so a role can be copied straight to the login. */
