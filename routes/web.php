@@ -101,6 +101,7 @@ Route::prefix('staff')->name('staff.')->group(function () {
 
         Route::get('/manual-time', [ManualTimeController::class, 'index'])->name('manual-time');
         Route::post('/manual-time', [ManualTimeController::class, 'store'])->name('manual-time.store');
+        Route::get('/manual-time/members', [ManualTimeController::class, 'search'])->name('manual-time.search');
 
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');
         Route::post('/notifications/read', [NotificationController::class, 'markAllRead'])->name('notifications.read');

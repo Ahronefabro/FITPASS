@@ -4,7 +4,6 @@
 @section('content')
     <h1>Analytics</h1>
     @include('partials.cards')
-
     <div class="grid g-3-2">
         <section class="panel">
             <h2>Check-ins: Last 7 Days</h2>
@@ -31,6 +30,8 @@
             @endforeach
         </section>
     </div>
+
+    @include('partials.revenue-by-month')
 
     <div class="grid g-3-2">
         <section class="panel">

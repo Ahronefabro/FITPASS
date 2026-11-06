@@ -18,6 +18,7 @@ class DashboardController extends Controller
         'last_week' => 'Last Week',
         'this_month' => 'This Month',
         'last_month' => 'Last Month',
+        'this_year' => 'This Year',
     ];
 
     /** Revenue that belongs to no plan, and its chart colour. */
@@ -31,17 +32,18 @@ class DashboardController extends Controller
         }
 
         // Work out the date window for the chart.
+        $yearly = $range === 'this_year';
         $monthly = str_ends_with($range, 'month');
-        $start = $monthly ? now()->startOfMonth() : now()->startOfWeek();
+        $start = $yearly ? now()->startOfYear() : ($monthly ? now()->startOfMonth() : now()->startOfWeek());
         if (str_starts_with($range, 'last')) {
             $start = $monthly ? $start->subMonth() : $start->subWeek();
         }
-        $end = $monthly ? $start->copy()->endOfMonth() : $start->copy()->endOfWeek();
+        $end = $yearly ? $start->copy()->endOfYear() : ($monthly ? $start->copy()->endOfMonth() : $start->copy()->endOfWeek());
 
-        // Week ranges show one bar per day; month ranges show one bar per week.
+        // Week ranges show one bar per day; month ranges one per week; the year one per month.
         $perDay = $this->dailyCounts($start, $end);
         $chart = collect(CarbonPeriod::create($start, $end)->toArray())
-            ->groupBy(fn ($day) => $monthly ? 'Week '.(intdiv($day->day - 1, 7) + 1) : $day->format('M j'))
+            ->groupBy(fn ($day) => $yearly ? $day->format('M') : ($monthly ? 'Week '.(intdiv($day->day - 1, 7) + 1) : $day->format('M j')))
             ->map(fn ($days) => $days->sum(fn ($day) => $perDay[$day->toDateString()] ?? 0));
 
         // Share of members on each plan, plus the donut chart gradient.
@@ -58,8 +60,13 @@ class DashboardController extends Controller
             return $colours[$plan]." {$from}% {$at}%";
         })->push("#1E1E1E {$at}% 100%")->implode(', ');
 
+        // The revenue card follows the same range as the Check-ins Overview dropdown.
+        // (summaryCards() puts the revenue card 4th, so it is index 3.)
+        $cards = $this->summaryCards();
+        $cards[3] = $this->revenueCard($range, $start, $end, $yearly ? $this->monthlyRevenue($start->year) : null);
+
         return view('owner.overview', [
-            'cards' => $this->summaryCards(),
+            'cards' => $cards,
             'recent' => CheckIn::with('member')->latest('time_in')->take(5)->get(),
             'ranges' => self::RANGES,
             'range' => $range,
@@ -71,6 +78,53 @@ class DashboardController extends Controller
             'donut' => "conic-gradient({$stops})",
             'systems' => $this->systemStatus(),
         ]);
+    }
+
+    /** The revenue card for the selected range: [title, amount, small line]. */
+    private function revenueCard(string $range, $start, $end, $monthlyRevenue = null): array
+    {
+        $total = Payment::whereBetween('paid_on', [$start->toDateString(), $end->toDateString()])->sum('amount');
+
+        if ($range === 'this_year') {
+            // The year shows its best-selling month.
+            $top = $monthlyRevenue?->filter()->sortDesc();
+            $note = $top && $top->isNotEmpty()
+                ? 'Top month: '.$top->keys()->first().' (₱'.number_format($top->first()).')'
+                : 'No payments yet';
+        } elseif (str_starts_with($range, 'this')) {
+            // Current week / month show today's takings.
+            $note = '₱'.number_format(Payment::whereDate('paid_on', today())->sum('amount')).' today';
+        } else {
+            // Past ranges show which dates they cover.
+            $note = $start->format('M j').' – '.$end->format('M j');
+        }
+
+        return ['Revenue '.self::RANGES[$range], '₱'.number_format($total), $note];
+    }
+
+    /** Revenue for each month of a year, Jan to Dec, e.g. ['Jan' => 1200.0, 'Feb' => 0.0, ...]. */
+    private function monthlyRevenue(int $year)
+    {
+        $sums = Payment::whereBetween('paid_on', [
+                Carbon::create($year, 1, 1)->toDateString(),
+                Carbon::create($year, 12, 31)->toDateString(),
+            ])
+            ->selectRaw('MONTH(paid_on) as month, SUM(amount) as total')
+            ->groupBy('month')->pluck('total', 'month');
+
+        return collect(range(1, 12))->mapWithKeys(
+            fn ($month) => [Carbon::create($year, $month, 1)->format('M') => (float) ($sums[$month] ?? 0)]
+        );
+    }
+
+    /** The earliest year that has any payment or check-in, so the year arrows stop there. */
+    private function firstYear(): int
+    {
+        $dates = array_filter([Payment::min('paid_on'), CheckIn::min('time_in')]);
+
+        return $dates
+            ? min(array_map(fn ($date) => Carbon::parse($date)->year, $dates))
+            : now()->year;
     }
 
     /**
@@ -104,7 +158,7 @@ class DashboardController extends Controller
         ];
     }
 
-    public function analytics()
+    public function analytics(Request $request)
     {
         // Check-ins for the last 7 days.
         $perDay = $this->dailyCounts(today()->subDays(6), now());
@@ -127,6 +181,13 @@ class DashboardController extends Controller
         $revenue = collect($colours)->map(
             fn ($colour, $bucket) => $revenueTotal ? (int) round(($sums[$bucket] ?? 0) / $revenueTotal * 100) : 0
         );
+
+        // Revenue by Month: one year at a time, stepped with the < 2026 > arrows
+        // (never before the first data, never into the future).
+        $thisYear = now()->year;
+        $firstYear = min($this->firstYear(), $thisYear);
+        $year = max($firstYear, min((int) $request->query('year', $thisYear), $thisYear));
+        $monthlyRevenue = $this->monthlyRevenue($year);
 
         // The five busiest hours of the last 30 days.
         $hours = CheckIn::where('time_in', '>=', now()->subDays(30))->pluck('time_in')
@@ -157,6 +218,11 @@ class DashboardController extends Controller
             'revenue' => $revenue,
             'revenueTotal' => $revenueTotal,
             'colours' => $colours,
+            'monthlyRevenue' => $monthlyRevenue,
+            'topMonth' => $monthlyRevenue->filter()->sortDesc()->keys()->first(),
+            'year' => $year,
+            'canPrev' => $year > $firstYear,
+            'canNext' => $year < $thisYear,
             'peak' => $peak,
             'growth' => $growth,
             'points' => $points,
