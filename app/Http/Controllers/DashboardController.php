@@ -26,19 +26,19 @@ class DashboardController extends Controller
 
     public function overview(Request $request)
     {
-        $range = $request->query('range');
-        if (! in_array($range, array_keys(self::RANGES), true)) {
-            $range = 'this_week';
+        // A range picked in the dropdown is remembered in the session, so the
+        // Analytics page can show the same one. Without a pick, use the last
+        // remembered range, or This Month.
+        $picked = $request->query('range');
+        if (in_array($picked, array_keys(self::RANGES), true)) {
+            session(['dashboard_range' => $picked]);
         }
+        $range = $this->currentRange();
 
         // Work out the date window for the chart.
         $yearly = $range === 'this_year';
         $monthly = str_ends_with($range, 'month');
-        $start = $yearly ? now()->startOfYear() : ($monthly ? now()->startOfMonth() : now()->startOfWeek());
-        if (str_starts_with($range, 'last')) {
-            $start = $monthly ? $start->subMonth() : $start->subWeek();
-        }
-        $end = $yearly ? $start->copy()->endOfYear() : ($monthly ? $start->copy()->endOfMonth() : $start->copy()->endOfWeek());
+        [$start, $end] = $this->rangeWindow($range);
 
         // Week ranges show one bar per day; month ranges one per week; the year one per month.
         $perDay = $this->dailyCounts($start, $end);
@@ -80,10 +80,35 @@ class DashboardController extends Controller
         ]);
     }
 
+    /** The range chosen on the Overview dropdown (remembered in the session), default This Month. */
+    private function currentRange(): string
+    {
+        $range = session('dashboard_range');
+
+        return in_array($range, array_keys(self::RANGES), true) ? $range : 'this_month';
+    }
+
+    /** The first and last day covered by a range key. */
+    private function rangeWindow(string $range): array
+    {
+        $yearly = $range === 'this_year';
+        $monthly = str_ends_with($range, 'month');
+        $start = $yearly ? now()->startOfYear() : ($monthly ? now()->startOfMonth() : now()->startOfWeek());
+        if (str_starts_with($range, 'last')) {
+            $start = $monthly ? $start->subMonth() : $start->subWeek();
+        }
+        $end = $yearly ? $start->copy()->endOfYear() : ($monthly ? $start->copy()->endOfMonth() : $start->copy()->endOfWeek());
+
+        return [$start, $end];
+    }
+
     /** The revenue card for the selected range: [title, amount, small line]. */
     private function revenueCard(string $range, $start, $end, $monthlyRevenue = null): array
     {
-        $total = Payment::whereBetween('paid_on', [$start->toDateString(), $end->toDateString()])->sum('amount');
+        // whereDate works whether paid_on is a date or a datetime column.
+        $total = Payment::whereDate('paid_on', '>=', $start->toDateString())
+            ->whereDate('paid_on', '<=', $end->toDateString())
+            ->sum('amount');
 
         if ($range === 'this_year') {
             // The year shows its best-selling month.
@@ -212,8 +237,14 @@ class DashboardController extends Controller
         $top = max($growth->max(), 1);
         $points = $growth->values()->map(fn ($count, $i) => [$i * 20, round(90 - $count / $top * 80)]);
 
+        // The revenue card uses the same range as the Overview dropdown.
+        $range = $this->currentRange();
+        [$rangeStart, $rangeEnd] = $this->rangeWindow($range);
+        $cards = $this->summaryCards();
+        $cards[3] = $this->revenueCard($range, $rangeStart, $rangeEnd, $range === 'this_year' ? $this->monthlyRevenue($rangeStart->year) : null);
+
         return view('owner.analytics', [
-            'cards' => $this->summaryCards(),
+            'cards' => $cards,
             'week' => $week,
             'revenue' => $revenue,
             'revenueTotal' => $revenueTotal,
