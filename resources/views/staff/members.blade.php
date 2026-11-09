@@ -47,10 +47,6 @@
 
     <section class="panel alt">
         <h2>Member List</h2>
-        <div class="toolbar">
-            <span class="spacer"></span>
-            <button class="btn primary" data-open="add-member">+ Add Member</button>
-        </div>
 
         <div class="table-wrap">
             <table>
@@ -115,33 +111,6 @@
             <button type="button" class="btn" data-close>Close</button>
             <button type="button" class="btn primary" id="qr-print">PRINT</button>
         </div>
-    </dialog>
-
-    <dialog id="add-member" @if (old('name') && ! old('editing')) data-reopen @endif>
-        <h2>ADD MEMBER</h2>
-        <form method="POST" action="{{ route('staff.members.store') }}">
-            @csrf
-            @if ($errors->any()) <p class="error">{{ $errors->first() }}</p> @endif
-
-            <label>Member name
-                <input name="name" value="{{ old('editing') ? '' : old('name') }}" required>
-            </label>
-            <label>Contact number
-                <input name="contact" value="{{ old('editing') ? '' : old('contact') }}">
-            </label>
-            <label>Member type
-                <select name="plan" required>
-                    @foreach ($plans as $plan)
-                        <option value="{{ $plan }}" @selected(! old('editing') && old('plan') === $plan)>{{ $plan }}</option>
-                    @endforeach
-                </select>
-            </label>
-
-            <div class="actions">
-                <button type="button" class="btn" data-close>Cancel</button>
-                <button class="btn primary">ADD</button>
-            </div>
-        </form>
     </dialog>
 
     <dialog id="edit-member" @if (old('editing')) data-reopen @endif>
