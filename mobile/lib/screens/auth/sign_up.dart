@@ -1,6 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/api.dart';
+import 'legal_documents.dart';
 import 'log_in.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -34,6 +36,11 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  late final TapGestureRecognizer _termsTap = TapGestureRecognizer()
+    ..onTap = () => showLegalSheet(context, LegalDocument.terms);
+  late final TapGestureRecognizer _privacyTap = TapGestureRecognizer()
+    ..onTap = () => showLegalSheet(context, LegalDocument.privacy);
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +71,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _termsTap.dispose();
+    _privacyTap.dispose();
     super.dispose();
   }
 
@@ -216,21 +225,26 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     child: Padding(
                       padding: const EdgeInsets.only(top: 3),
                       child: RichText(
-                        text: const TextSpan(
-                          style: TextStyle(color: Colors.white, fontSize: 13),
+                        text: TextSpan(
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                          ),
                           children: [
-                            TextSpan(text: 'I agree to the '),
+                            const TextSpan(text: 'I agree to the '),
                             TextSpan(
                               text: 'Terms of Service',
-                              style: TextStyle(
+                              recognizer: _termsTap,
+                              style: const TextStyle(
                                 color: _greenColor,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            TextSpan(text: '\nand '),
+                            const TextSpan(text: '\nand '),
                             TextSpan(
                               text: 'Privacy Policy',
-                              style: TextStyle(
+                              recognizer: _privacyTap,
+                              style: const TextStyle(
                                 color: _greenColor,
                                 fontWeight: FontWeight.w600,
                               ),
