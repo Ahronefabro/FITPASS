@@ -22,6 +22,8 @@ class ManualTimeController extends Controller
     {
         return view('staff.manual-time', [
             'entries' => CheckIn::logFor(today())->where('method', 'Manual')->values(),
+            // Sent to the view so the prices on screen always match what the server charges
+            'fees' => self::WALK_IN_FEES,
         ]);
     }
 
@@ -53,12 +55,17 @@ class ManualTimeController extends Controller
             'payment_method' => ['nullable', Rule::in(Payment::METHODS)],
         ]);
 
-        // A walk-in Time In with the fee confirmed also becomes a payment record.
-        $isWalkInPayment = $data['action'] === 'Check In'
-            && ! isset($data['member_id'])
-            && ! empty($data['payment_confirmed'])
-            && ! empty($data['walk_in_type']);
+        $isWalkInTimeIn = $data['action'] === 'Check In' && ! isset($data['member_id']);
 
+        // A walk-in Time In must always come with a confirmed fee, so no walk-in
+        // is ever let in without a payment record. Time Out needs no payment.
+        if ($isWalkInTimeIn && (empty($data['payment_confirmed']) || empty($data['walk_in_type']))) {
+            return back()->withInput()->withErrors([
+                'guest_name' => 'Confirm the walk-in payment before recording a Time In.',
+            ]);
+        }
+
+        $isWalkInPayment = $isWalkInTimeIn;
         $amount = $isWalkInPayment ? self::WALK_IN_FEES[$data['walk_in_type']] : null;
         $method = $data['payment_method'] ?? 'Cash';
 

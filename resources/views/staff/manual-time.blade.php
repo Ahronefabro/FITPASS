@@ -176,14 +176,14 @@
                         <input type="radio" name="pay_opt" value="regular" checked>
                         <span class="pay-opt__card">
                             <span class="pay-opt__label">Regular</span>
-                            <span class="pay-opt__price">₱100</span>
+                            <span class="pay-opt__price">₱{{ $fees['regular'] }}</span>
                         </span>
                     </label>
                     <label class="pay-opt">
                         <input type="radio" name="pay_opt" value="student">
                         <span class="pay-opt__card">
                             <span class="pay-opt__label">Student</span>
-                            <span class="pay-opt__price">₱80</span>
+                            <span class="pay-opt__price">₱{{ $fees['student'] }}</span>
                         </span>
                     </label>
                 </div>
@@ -201,7 +201,7 @@
                 <p class="pay-modal__text">Collect the walk-in fee, then confirm to record this time in.</p>
                 <div class="pay-modal__actions">
                     <button type="button" id="payModalCancel" class="pay-modal__btn pay-modal__btn--ghost">Cancel</button>
-                    <button type="button" id="payModalConfirm" class="pay-modal__btn pay-modal__btn--primary" autofocus>Confirm ₱100 payment</button>
+                    <button type="button" id="payModalConfirm" class="pay-modal__btn pay-modal__btn--primary" autofocus>Confirm ₱{{ $fees['regular'] }} payment</button>
                 </div>
             </div>
         </dialog>
@@ -738,8 +738,10 @@
         const confirmBtn = document.getElementById('payModalConfirm');
         const cancelBtn = document.getElementById('payModalCancel');
         const nameInput = document.getElementById('nameSearch');
+        const recordBtn = form.querySelector('button.primary');
         let confirmed = false;
-        const fees = { regular: 100, student: 80 };
+        // Same prices the server charges (passed from the controller)
+        const fees = @json($fees);
         const typeFlag = document.getElementById('walkInType');
         const methodFlag = document.getElementById('paymentMethod');
         const selectedMethod = () => dialog.querySelector('input[name="pay_method"]:checked').value;
@@ -760,6 +762,7 @@
             if (action !== 'Check In') {
                 clearPaymentFlags();
                 if (dialog.open) dialog.close();
+                recordBtn.disabled = true; // stop a double-click from posting twice
                 return; // let the form submit normally
             }
 
@@ -793,6 +796,7 @@
         window.addEventListener('pageshow', () => {
             confirmed = false;
             confirmBtn.disabled = false;
+            recordBtn.disabled = false;
             clearPaymentFlags();
             updateLabel();
             if (dialog.open) dialog.close();

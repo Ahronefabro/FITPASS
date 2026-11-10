@@ -13,14 +13,40 @@ use Illuminate\Validation\Rule;
 
 class MemberController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $members = Member::orderBy('name')->simplePaginate(50);
+        $plans  = Plan::names();
+        $filter = $request->query('filter', 'All');
+        $view   = $request->query('view') === 'grid' ? 'grid' : 'table';
+
+        $query = Member::orderBy('name');
+
+        // TODO: if app sign-ups waiting for payment are also returned by Member::orderBy(),
+        // exclude them here (the inverse of whatever Member::pending() checks),
+        // otherwise they show in both the "Waiting for Payment" table and the Member List.
+
+        if ($filter === 'Expiring soon') {
+            $query->expiringSoon();
+        } elseif (collect($plans)->contains($filter)) {
+            $query->where('plan', $filter);
+        } else {
+            $filter = 'All'; // unknown value in the URL
+        }
+
+        // Grid uses 12 so the last row of tiles is not left half empty
+        $members = $query->paginate($view === 'grid' ? 12 : 10)->withQueryString();
+
+        // Deleted the last row of the last page, or a bad ?page=99
+        if ($members->currentPage() > $members->lastPage()) {
+            return redirect($request->fullUrlWithQuery(['page' => $members->lastPage()]));
+        }
 
         return view('staff.members', [
             'members' => $members,
+            'filter' => $filter,
+            'view' => $view,
             'pending' => Member::pending()->oldest()->get(),
-            'plans' => Plan::names(),
+            'plans' => $plans,
             'methods' => Payment::METHODS,
             'prices' => Plan::prices(),
             'cards' => [
