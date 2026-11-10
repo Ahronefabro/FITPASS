@@ -2,70 +2,163 @@
 @section('title', 'Manual Time in/out')
 
 @section('content')
-    <h1>Manual Time in / out</h1>
+    <div class="page-head">
+        <h1>Manual Time in / out</h1>
+        <button type="button" id="openEntry" class="open-entry">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Manual Time Entry
+        </button>
+    </div>
 
     <section class="panel">
-        <h2>Manual Time Entry</h2>
-        <form method="POST" action="{{ route('staff.manual-time.store') }}" id="manualTimeForm">
-            @csrf
-            <input type="hidden" name="payment_confirmed" id="paymentConfirmed" value="">
-            <input type="hidden" name="walk_in_type" id="walkInType" value="">
-            <input type="hidden" name="payment_method" id="paymentMethod" value="">
-            @if ($errors->any()) <p class="error">{{ $errors->first() }}</p> @endif
+        @php
+            // Pair each Check In with its Check Out so every visit is a single line.
+            $sessions = [];
+            $open = [];
+            $chronological = collect($entries)->sortBy(fn ($e) => $e['at']->getTimestamp())->values();
+            foreach ($chronological as $event) {
+                $key = mb_strtolower(trim((string) $event['row']->person_name));
+                if ($event['action'] === 'Check In') {
+                    $sessions[] = ['row' => $event['row'], 'in' => $event['at'], 'out' => null];
+                    $open[$key] = array_key_last($sessions);
+                } elseif (isset($open[$key])) {
+                    $sessions[$open[$key]]['out'] = $event['at'];
+                    unset($open[$key]);
+                } else {
+                    // Time Out with no Time In recorded today
+                    $sessions[] = ['row' => $event['row'], 'in' => null, 'out' => $event['at']];
+                }
+            }
+            // Most recent activity first
+            usort($sessions, fn ($a, $b) => ($b['out'] ?? $b['in'])->getTimestamp() <=> ($a['out'] ?? $a['in'])->getTimestamp());
+        @endphp
 
-            <div class="name-search">
-                <label>Name <small>walk-in or first-timer</small>
-                    <div class="name-search__box">
-                        <input id="nameSearch" name="guest_name" value="{{ old('guest_name') }}"
-                               placeholder="Type the name" autocomplete="off" required>
-                        <button type="button" id="nameSearchBtn" class="name-search__btn"
-                                title="Search past walk-ins" aria-label="Search past walk-ins"
-                                aria-expanded="false" aria-controls="namePanel">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <circle cx="11" cy="11" r="7"></circle>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                            </svg>
-                        </button>
-                    </div>
-                </label>
+        <h2>Recent Manual Entries <small>today · {{ count($sessions) }} {{ count($sessions) === 1 ? 'visit' : 'visits' }}</small></h2>
 
-                <div id="namePanel" class="name-panel" hidden>
-                    <div class="name-panel__head">
-                        <span>Past walk-ins</span>
-                        <span id="namePanelCount"></span>
-                    </div>
+        <div class="visits" id="entriesTable">
+            <div class="visits__head">
+                <span>Name</span>
+                <span>Action</span>
+                <span>Time</span>
+                <span>Action</span>
+                <span>Time</span>
+            </div>
 
-                    <div class="name-panel__search">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="11" cy="11" r="7"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                        <input type="text" id="namePanelSearch" placeholder="Search by name…" autocomplete="off">
-                    </div>
+            @forelse ($sessions as $s)
+                <div class="visits__row entry-row">
+                    <span class="who"><span class="avatar">{{ $s['row']->initials }}</span>{{ $s['row']->person_name }}</span>
 
-                    <ul id="namePanelList" role="listbox"></ul>
+                    @if ($s['in'])
+                        <span><b class="tag tag--in">Checked-in</b></span>
+                        <span class="visits__time">{{ $s['in']->format('g:i A') }}</span>
+                    @else
+                        <span class="visits__none">—</span>
+                        <span class="visits__none">—</span>
+                    @endif
 
-                    <div class="name-panel__foot">
-                        <span><kbd>↑</kbd> <kbd>↓</kbd> to move</span>
-                        <span><kbd>Enter</kbd> to select</span>
-                        <span><kbd>Esc</kbd> to close</span>
-                    </div>
+                    @if ($s['out'])
+                        <span><b class="tag tag--out">Checked-out</b></span>
+                        <span class="visits__time">{{ $s['out']->format('g:i A') }}</span>
+                    @elseif ($s['in'])
+                        <span><b class="tag tag--still">Still inside</b></span>
+                        <span class="visits__none">—</span>
+                    @else
+                        <span class="visits__none">—</span>
+                        <span class="visits__none">—</span>
+                    @endif
                 </div>
-            </div>
+            @empty
+                <div class="visits__empty">No manual entries yet.</div>
+            @endforelse
+        </div>
 
-            <div class="seg">
-                @foreach (['Check In' => 'Time In', 'Check Out' => 'Time Out'] as $value => $label)
-                    <label>
-                        <input type="radio" name="action" value="{{ $value }}" @checked(old('action', 'Check In') === $value)>
-                        <span>{{ $label }}</span>
-                    </label>
-                @endforeach
+        @if (count($sessions))
+            <div class="pager">
+                <span class="pager__info" id="entriesInfo"></span>
+                <nav class="pager__nav" id="entriesPager" aria-label="Entries pages"></nav>
             </div>
+        @endif
 
-            <button class="btn primary wide">RECORD TIME</button>
-        </form>
+        {{-- Manual time entry form (opens from the button above) --}}
+        <dialog id="entryModal" class="entry-modal" aria-labelledby="entryModalTitle">
+            <div class="entry-modal__body">
+                <div class="entry-modal__head">
+                    <h2 id="entryModalTitle">Manual Time Entry</h2>
+                    <button type="button" id="entryClose" class="entry-modal__close" aria-label="Close">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <form method="POST" action="{{ route('staff.manual-time.store') }}" id="manualTimeForm">
+                    @csrf
+                    <input type="hidden" name="payment_confirmed" id="paymentConfirmed" value="">
+                    <input type="hidden" name="walk_in_type" id="walkInType" value="">
+                    <input type="hidden" name="payment_method" id="paymentMethod" value="">
+                    @if ($errors->any()) <p class="error">{{ $errors->first() }}</p> @endif
+
+                    <div class="name-search">
+                        <label>Name <small>walk-in or first-timer</small>
+                            <div class="name-search__box">
+                                <input id="nameSearch" name="guest_name" value="{{ old('guest_name') }}"
+                                       placeholder="Type the name" autocomplete="off" required>
+                                <button type="button" id="nameSearchBtn" class="name-search__btn"
+                                        title="Search past walk-ins" aria-label="Search past walk-ins"
+                                        aria-expanded="false" aria-controls="namePanel">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <circle cx="11" cy="11" r="7"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </label>
+
+                        <div id="namePanel" class="name-panel" hidden>
+                            <div class="name-panel__head">
+                                <span>Past walk-ins</span>
+                                <span id="namePanelCount"></span>
+                            </div>
+
+                            <div class="name-panel__search">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <circle cx="11" cy="11" r="7"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input type="text" id="namePanelSearch" placeholder="Search by name…" autocomplete="off">
+                            </div>
+
+                            <ul id="namePanelList" role="listbox"></ul>
+
+                            <div class="name-panel__foot">
+                                <span><kbd>↑</kbd> <kbd>↓</kbd> to move</span>
+                                <span><kbd>Enter</kbd> to select</span>
+                                <span><kbd>Esc</kbd> to close</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="seg">
+                        @foreach (['Check In' => 'Time In', 'Check Out' => 'Time Out'] as $value => $label)
+                            <label>
+                                <input type="radio" name="action" value="{{ $value }}" @checked(old('action', 'Check In') === $value)>
+                                <span>{{ $label }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+
+                    <button class="btn primary wide">RECORD TIME</button>
+                </form>
+            </div>
+        </dialog>
 
         <dialog id="payModal" class="pay-modal" aria-labelledby="payModalTitle">
             <div class="pay-modal__body">
@@ -134,25 +227,86 @@
         @endif
     </section>
 
-    <section class="panel">
-        <h2>Recent Manual Entries <small>today</small></h2>
-        <div class="table-wrap">
-            <table>
-                <tr><th>Name</th><th>Action</th><th>Time</th></tr>
-                @forelse ($entries as $event)
-                    <tr>
-                        <td><span class="who"><span class="avatar">{{ $event['row']->initials }}</span>{{ $event['row']->person_name }}</span></td>
-                        <td><b @class([$event['action'] === 'Check In' ? 'green' : 'orange'])>{{ $event['action'] }}</b></td>
-                        <td>{{ $event['at']->format('g:i A') }}</td>
-                    </tr>
-                @empty
-                    <tr><td colspan="3">No manual entries yet.</td></tr>
-                @endforelse
-            </table>
-        </div>
-    </section>
-
     <style>
+        /* Page header with the "Manual Time Entry" button */
+        .page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+        .page-head h1 { margin: 0; }
+        .open-entry {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 12px 20px; border-radius: 12px; cursor: pointer;
+            background: #22c55e; color: #05260f; border: 1px solid #22c55e;
+            font-size: 14px; font-weight: 800; letter-spacing: .02em;
+            transition: filter .15s, transform .1s;
+        }
+        .open-entry:hover { filter: brightness(1.08); }
+        .open-entry:active { transform: translateY(1px); }
+        .open-entry:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(34,197,94,.35); }
+
+        /* Recent entries: one line per visit */
+        .visits { overflow-x: auto; }
+        .visits__head,
+        .visits__row {
+            display: grid; align-items: center; column-gap: 16px; min-width: 680px;
+            grid-template-columns: minmax(170px, 1.7fr) minmax(120px, 1fr) minmax(90px, .8fr) minmax(120px, 1fr) minmax(90px, .8fr);
+        }
+        .visits__head {
+            padding: 0 18px 10px; font-size: 11px; font-weight: 700;
+            letter-spacing: .08em; text-transform: uppercase; color: #8b93a1;
+        }
+        .visits__row {
+            margin-bottom: 8px; padding: 14px 18px; border-radius: 14px;
+            background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.09);
+            transition: border-color .15s, background .15s;
+        }
+        .visits__row:hover { border-color: rgba(34,197,94,.35); background: rgba(255,255,255,.05); }
+        .visits__time { font-variant-numeric: tabular-nums; color: #d1d5db; font-weight: 500; }
+        .visits__none { color: #4b5160; }
+        .visits__empty { padding: 28px 10px; text-align: center; color: #8b93a1; }
+        .visits .tag {
+            display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px;
+            border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap;
+        }
+        .visits .tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .visits .tag--in    { color: #22c55e; background: rgba(34,197,94,.12); }
+        .visits .tag--out   { color: #fb923c; background: rgba(251,146,60,.12); }
+        .visits .tag--still { color: #8b93a1; background: rgba(139,147,161,.12); font-weight: 600; }
+
+        /* Pagination */
+        .pager { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+        .pager__info { font-size: 13px; color: #8b93a1; }
+        .pager__nav { display: flex; align-items: center; gap: 6px; }
+        .pager .pager__btn {
+            min-width: 36px; height: 36px; padding: 0 10px; display: grid; place-items: center;
+            border: 1px solid #343944; border-radius: 10px; background: #1a1d24;
+            color: #e5e7eb; font-size: 14px; font-weight: 600; cursor: pointer;
+            transition: border-color .15s, color .15s, background .15s;
+        }
+        .pager .pager__btn:hover:not(:disabled):not([aria-current="page"]) { border-color: #22c55e; color: #22c55e; }
+        .pager .pager__btn[aria-current="page"] { background: #22c55e; border-color: #22c55e; color: #05260f; cursor: default; }
+        .pager .pager__btn:disabled { opacity: .4; cursor: default; }
+        .pager .pager__btn:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(34,197,94,.25); }
+        .pager__gap { padding: 0 4px; color: #6b7280; }
+
+        /* Manual time entry modal */
+        .entry-modal {
+            width: min(560px, calc(100% - 32px)); padding: 0; overflow: visible; color: #fff;
+            background: #1a1d24; border: 1px solid #2f343d; border-radius: 16px;
+            box-shadow: 0 24px 60px rgba(0,0,0,.6);
+        }
+        .entry-modal[open] { animation: payModalIn .16s ease-out; }
+        .entry-modal::backdrop { background: rgba(0,0,0,.65); backdrop-filter: blur(2px); }
+        @media (prefers-reduced-motion: reduce) { .entry-modal[open] { animation: none; } }
+        .entry-modal__body { padding: 24px; }
+        .entry-modal__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .entry-modal__head h2 { margin: 0; font-size: 20px; }
+        .entry-modal .entry-modal__close {
+            width: 36px; height: 36px; display: grid; place-items: center; padding: 0;
+            background: transparent; border: 0; border-radius: 8px; color: #9ca3af; cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        .entry-modal .entry-modal__close:hover { background: #242830; color: #fff; }
+
+        /* Name search */
         .name-search { position: relative; }
         .name-search__box { position: relative; }
         .name-search__box input { width: 100%; box-sizing: border-box; padding-right: 52px; }
@@ -318,6 +472,110 @@
     </style>
 
     <script>
+    // Open / close the Manual Time Entry modal.
+    (() => {
+        const dlg = document.getElementById('entryModal');
+        const openBtn = document.getElementById('openEntry');
+        const closeBtn = document.getElementById('entryClose');
+        const nameInput = document.getElementById('nameSearch');
+
+        const open = () => {
+            if (!dlg.open) dlg.showModal();
+            nameInput.focus();
+        };
+
+        openBtn.addEventListener('click', open);
+        closeBtn.addEventListener('click', () => dlg.close());
+
+        // Clicking the dark backdrop closes it (only if the press also started on the backdrop,
+        // so dragging a text selection out of the modal doesn't close it).
+        let downOnBackdrop = false;
+        dlg.addEventListener('mousedown', e => { downOnBackdrop = e.target === dlg; });
+        dlg.addEventListener('click', e => { if (e.target === dlg && downOnBackdrop) dlg.close(); });
+
+        // Re-open after a validation error so the message is visible.
+        @if ($errors->any())
+        open();
+        @endif
+    })();
+    </script>
+
+    <script>
+    // Client-side pagination for the Recent Manual Entries table.
+    (() => {
+        const PAGE_SIZE = 10;
+        const rows = [...document.querySelectorAll('#entriesTable .entry-row')];
+        const nav = document.getElementById('entriesPager');
+        const info = document.getElementById('entriesInfo');
+        if (!rows.length || !nav || !info) return;
+
+        const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+        let page = 1;
+
+        // 1 … 4 5 6 … 12
+        function pageItems(current, total) {
+            if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+            const keep = [...new Set([1, total, current - 1, current, current + 1])]
+                .filter(n => n >= 1 && n <= total)
+                .sort((a, b) => a - b);
+            const out = [];
+            let prev = 0;
+            keep.forEach(n => {
+                if (n - prev > 1) out.push('…');
+                out.push(n);
+                prev = n;
+            });
+            return out;
+        }
+
+        function button(label, { disabled = false, current = false, aria, onClick } = {}) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'pager__btn';
+            b.textContent = label;
+            if (aria) b.setAttribute('aria-label', aria);
+            if (current) b.setAttribute('aria-current', 'page');
+            b.disabled = disabled;
+            if (onClick) b.addEventListener('click', onClick);
+            return b;
+        }
+
+        function go(n) {
+            page = Math.min(Math.max(1, n), totalPages);
+            render();
+        }
+
+        function render() {
+            const start = (page - 1) * PAGE_SIZE;
+            const end = Math.min(start + PAGE_SIZE, rows.length);
+
+            rows.forEach((row, i) => { row.style.display = (i >= start && i < end) ? '' : 'none'; });
+            info.textContent = `Showing ${start + 1}–${end} of ${rows.length}`;
+
+            nav.innerHTML = '';
+            nav.append(button('‹', { disabled: page === 1, aria: 'Previous page', onClick: () => go(page - 1) }));
+            pageItems(page, totalPages).forEach(item => {
+                if (item === '…') {
+                    const gap = document.createElement('span');
+                    gap.className = 'pager__gap';
+                    gap.textContent = '…';
+                    nav.append(gap);
+                } else {
+                    nav.append(button(String(item), {
+                        current: item === page,
+                        aria: `Page ${item}`,
+                        onClick: () => go(item),
+                    }));
+                }
+            });
+            nav.append(button('›', { disabled: page === totalPages, aria: 'Next page', onClick: () => go(page + 1) }));
+        }
+
+        render();
+    })();
+    </script>
+
+    <script>
     (() => {
         const input = document.getElementById('nameSearch');
         const btn = document.getElementById('nameSearchBtn');
@@ -457,6 +715,7 @@
                 const target = all[activeIndex] || all[0];
                 if (target) pick(target.dataset.name);
             } else if (e.key === 'Escape') {
+                e.preventDefault(); // close only the name panel, not the whole modal
                 closePanel();
                 input.focus();
             }
@@ -470,6 +729,7 @@
 
     <script>
     // Time In for a walk-in / first-timer asks to confirm payment first.
+    // Time Out must NEVER show the payment dialog or send payment data.
     (() => {
         const form = document.getElementById('manualTimeForm');
         const dialog = document.getElementById('payModal');
@@ -487,9 +747,24 @@
         const updateLabel = () => { confirmBtn.textContent = `Confirm ₱${fees[selectedType()]} payment`; };
         dialog.querySelectorAll('input[name="pay_opt"]').forEach(r => r.addEventListener('change', updateLabel));
 
+        const clearPaymentFlags = () => {
+            flag.value = '';
+            typeFlag.value = '';
+            methodFlag.value = '';
+        };
+
         form.addEventListener('submit', e => {
-            const action = form.querySelector('input[name="action"]:checked')?.value;
-            if (action !== 'Check In' || confirmed) return; // Time Out goes straight through
+            const action = new FormData(form).get('action');
+
+            // Time Out: never show the dialog, and clear any stale payment data
+            if (action !== 'Check In') {
+                clearPaymentFlags();
+                if (dialog.open) dialog.close();
+                return; // let the form submit normally
+            }
+
+            if (confirmed) return; // already confirmed, let it submit
+
             e.preventDefault();
             nameEl.textContent = nameInput.value.trim();
             dialog.querySelector('input[name="pay_opt"][value="regular"]').checked = true;
@@ -512,6 +787,16 @@
 
         // Clicking the dark backdrop closes it (Esc already works on <dialog>).
         dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
+
+        // Reset state if the page is restored from the back/forward cache
+        // (or the browser restores old form state after a validation redirect).
+        window.addEventListener('pageshow', () => {
+            confirmed = false;
+            confirmBtn.disabled = false;
+            clearPaymentFlags();
+            updateLabel();
+            if (dialog.open) dialog.close();
+        });
     })();
     </script>
 
