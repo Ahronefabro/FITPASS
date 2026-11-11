@@ -13,7 +13,6 @@
             @endforeach
             <span class="spacer"></span>
             <a class="btn" href="{{ route('checkins.export') }}">Export</a>
-            <button class="btn primary" data-open="manual-entry">+ Manual Entry</button>
         </div>
 
         <div class="table-wrap">

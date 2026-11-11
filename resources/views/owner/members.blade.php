@@ -18,7 +18,6 @@
                 <a href="{{ route('members.index', ['filter' => $filter, 'view' => 'table']) }}" @class(['active' => $view === 'table'])>Table</a>
                 <a href="{{ route('members.index', ['filter' => $filter, 'view' => 'grid']) }}" @class(['active' => $view === 'grid'])>Grid</a>
             </span>
-            <button class="btn primary" data-open="add-member">+ Manual Entry</button>
         </div>
 
         @if ($members->isEmpty())

@@ -83,13 +83,6 @@
             <label>Username <input name="username" value="{{ old('username') }}" autocomplete="off" required></label>
             <label>Email <input type="email" name="email" value="{{ old('email') }}" autocomplete="off" required></label>
             <label>Starting password <input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
-            <label>Role
-                <select name="role">
-                    @foreach ($roles as $role)
-                        <option @selected(old('role') === $role)>{{ $role }}</option>
-                    @endforeach
-                </select>
-            </label>
             <label>Shift start <input type="time" name="shift_start" value="{{ old('shift_start', '06:00') }}" required></label>
             <label>Status
                 <select name="status">

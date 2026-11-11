@@ -33,7 +33,6 @@ class StaffController extends Controller
                 ['Total Staff', Staff::count(), Staff::where('created_at', '>=', now()->startOfMonth())->count().' added this month'],
                 ['Active', Staff::where('status', 'Active')->count(), 'Can sign in'],
                 ['Inactive', Staff::where('status', 'Inactive')->count(), 'Cannot sign in', true],
-                ['Admins', Staff::where('role', 'Admin')->count(), 'Full access'],
             ],
         ]);
     }
@@ -45,10 +44,13 @@ class StaffController extends Controller
             'username' => ['required', 'string', 'max:255', 'alpha_dash', Rule::unique('users', 'username')],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
             'password' => ['required', Password::min(8)],
-            'role' => ['required', Rule::in(Staff::ROLES)],
+            'role' => ['nullable', Rule::in(Staff::ROLES)],
             'shift_start' => 'required|date_format:H:i',
             'status' => ['required', Rule::in(Staff::STATUSES)],
         ]);
+
+        // The Add Staff form no longer asks for a role, so new accounts get the default.
+        $data['role'] ??= Staff::DEFAULT_ROLE;
 
         $staff = DB::transaction(function () use ($data) {
             // The model's 'hashed' cast hashes the password.

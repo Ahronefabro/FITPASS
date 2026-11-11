@@ -182,7 +182,7 @@
                     <label class="pay-opt">
                         <input type="radio" name="pay_opt" value="student">
                         <span class="pay-opt__card">
-                            <span class="pay-opt__label">Student</span>
+                            <span class="pay-opt__label">Student/Senior</span>
                             <span class="pay-opt__price">₱{{ $fees['student'] }}</span>
                         </span>
                     </label>
