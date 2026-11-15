@@ -25,6 +25,12 @@ class NotificationController extends Controller
         ]);
     }
 
+    // Used by the sidebar badge to refresh the number without reloading.
+    public function count()
+    {
+        return response()->json(['count' => StaffNotification::unread()->count()]);
+    }
+
     public function markAllRead()
     {
         StaffNotification::unread()->update(['read_at' => now()]);

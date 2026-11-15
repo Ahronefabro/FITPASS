@@ -2,11 +2,11 @@
 @section('title', 'Check-in')
 
 @section('content')
-    <h1>Check-ins</h1>
+    <h1>Attendance</h1>
     @include('partials.cards')
 
     <section class="panel alt">
-        <h2>Today's Check-in Logs</h2>
+        <h2>Today's Attendance</h2>
         <div class="toolbar">
             @foreach (['All', 'QR-code', 'Manual', 'Currently In'] as $option)
                 <a href="{{ route('checkins.index', ['filter' => $option]) }}" @class(['chip', 'active' => $filter === $option])>{{ $option }}</a>

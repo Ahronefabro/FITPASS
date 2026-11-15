@@ -4,7 +4,7 @@
         ['analytics', 'show_chart', 'Analytics'],
         ['members.index', 'group', 'Members'],
         ['staff.index', 'assignment_ind', 'Staff Management'],
-        ['checkins.index', 'how_to_reg', 'Check-in'],
+        ['checkins.index', 'how_to_reg', 'Attendance'],
         ['audit-logs', 'description', 'Audit Logs'],
     ];
 @endphp

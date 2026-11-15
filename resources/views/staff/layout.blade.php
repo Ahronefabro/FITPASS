@@ -2,12 +2,13 @@
     $nav = [
         ['staff.scanner', 'qr_code_scanner', 'Scanner'],
         ['staff.dashboard', 'dashboard_customize', 'Dashboard'],
-        ['staff.checkins', 'login', 'Check-ins'],
+        ['staff.checkins', 'login', 'Attendance'],
         ['staff.payments', 'payments', 'Payments'],
         ['staff.members', 'group', 'Members'],
         ['staff.manual-time', 'schedule', 'Manual Time in/out'],
         ['staff.notifications', 'notifications', 'Notifications'],
     ];
+    $unreadCount = $unreadCount ?? 0;
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -31,6 +32,10 @@
             @foreach ($nav as $item)
                 <a href="{{ route($item[0]) }}" @class(['active' => request()->routeIs($item[0])])>
                     <span class="material-symbols-outlined">{{ $item[1] }}</span>{{ $item[2] }}
+
+                    @if ($item[0] === 'staff.notifications' && $unreadCount > 0)
+                        <span class="notif-badge">{{ $unreadCount > 9 ? '9+' : $unreadCount }}</span>
+                    @endif
                 </a>
             @endforeach
         </nav>
@@ -40,6 +45,9 @@
         <header class="topbar">
             <button type="button" class="icon-btn nav-toggle" data-nav-toggle aria-controls="sidebar" aria-label="Open menu">
                 <span class="material-symbols-outlined">menu</span>
+                @if ($unreadCount > 0)
+                    <span class="notif-dot"></span>
+                @endif
             </button>
             <span class="today">{{ now()->format('l, F j') }}</span>
             <details class="menu user-menu">
@@ -105,6 +113,39 @@
             });
         });
     });
+
+    // Refresh the red notification badge every 30 seconds.
+    setInterval(async () => {
+        try {
+            const res = await fetch("{{ route('staff.notifications.count') }}", { headers: { Accept: 'application/json' } });
+            const { count } = await res.json();
+
+            const link = document.querySelector('.sidebar nav a[href="{{ route('staff.notifications') }}"]');
+            let badge = link.querySelector('.notif-badge');
+
+            if (count > 0) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'notif-badge';
+                    link.appendChild(badge);
+                }
+                badge.textContent = count > 9 ? '9+' : count;
+            } else {
+                badge?.remove();
+            }
+
+            // Dot on the mobile menu button.
+            const toggle = document.querySelector('.nav-toggle');
+            let dot = toggle.querySelector('.notif-dot');
+            if (count > 0 && !dot) {
+                dot = document.createElement('span');
+                dot.className = 'notif-dot';
+                toggle.appendChild(dot);
+            } else if (count === 0) {
+                dot?.remove();
+            }
+        } catch (e) {}
+    }, 30000);
 
     @if ($errors->any())
         // Reopen the dialog the failed form came from, so the errors are visible.

@@ -391,3 +391,42 @@ td select { padding: 6px 10px; background: #1E1E1E; border: 1px solid var(--line
     transition: background var(--ease), color var(--ease);
 }
 .btn-primary:hover { background: #00E65C; color: #000; }
+/* Make sidebar links flex so the badge can sit at the right edge.
+   Remove this rule if your links are already display:flex. */
+.sidebar nav a {
+    display: flex;
+    align-items: center;
+}
+
+/* Red number badge */
+.notif-badge {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #e53935;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* Small red dot on the mobile menu button */
+.nav-toggle {
+    position: relative;
+}
+
+.notif-dot {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #e53935;
+    border: 2px solid #fff;
+}
