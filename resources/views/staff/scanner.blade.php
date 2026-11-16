@@ -1,7 +1,34 @@
-@extends('staff.layout')
-@section('title', 'Scanner')
+{{-- A page of its own, outside the staff shell: no sidebar, no menus, just the
+     camera and the member card, so it can stay open on the gate tablet. Scans
+     still go to staff.scanner.record, the same signed-in staff session. --}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scanner · FitPass Staff</title>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=block">
+    <link rel="stylesheet" href="{{ asset('css/fitpass.css') }}">
+</head>
+<body class="scanner-page">
+<header class="topbar scanner-bar">
+    <a class="brand" href="{{ route('staff.dashboard') }}">
+        <img src="{{ asset('images/logo.png') }}" alt="" onerror="this.remove()">
+        <span><b>FIT<em>PASS</em></b><small>GYM</small></span>
+    </a>
+    <span class="today">{{ now()->format('l, F j') }}</span>
+    <span class="user">
+        <span class="avatar"><span class="material-symbols-outlined">person</span></span>
+        <span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->role }}</small></span>
+    </span>
+    <a class="btn" href="{{ route('staff.dashboard') }}">
+        <span class="material-symbols-outlined">arrow_back</span>Staff portal
+    </a>
+</header>
 
-@section('content')
+<main class="content">
     <h1>QR Check-in Scanner</h1>
 
     <div class="grid g-2">
@@ -52,9 +79,8 @@
             <p class="grey" style="margin: 12px 0 0; font-size: 12px">First scan checks a member in, the next scan checks them out.</p>
         </section>
     </div>
-@endsection
+</main>
 
-@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
     const record = @json(route('staff.scanner.record'));
@@ -219,4 +245,5 @@
         }).catch(() => noCamera('Camera unavailable or permission denied.'));
     }
 </script>
-@endpush
+</body>
+</html>

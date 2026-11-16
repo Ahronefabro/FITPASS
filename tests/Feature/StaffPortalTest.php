@@ -185,6 +185,28 @@ class StaffPortalTest extends TestCase
         $this->assertSame(2, CheckIn::count());
     }
 
+    public function test_the_scanner_is_a_standalone_page_that_still_records_scans(): void
+    {
+        $member = $this->member();
+        $this->actingAs($this->staff());
+
+        // Its own page: none of the staff shell, but a way back to it.
+        $this->get(route('staff.scanner'))
+            ->assertOk()
+            ->assertDontSee('class="sidebar"', false)
+            ->assertSee(route('staff.dashboard'), false)
+            // The page posts each scan to the record endpoint with the session's token.
+            ->assertSee(json_encode(route('staff.scanner.record')), false)
+            ->assertSee(csrf_token(), false);
+
+        // A scan sent the way the page sends it lands in the database.
+        $this->postJson(route('staff.scanner.record'), ['code' => $member->qr_code], ['X-CSRF-TOKEN' => csrf_token()])
+            ->assertOk()
+            ->assertJson(['action' => 'Check In']);
+
+        $this->assertDatabaseHas('check_ins', ['member_id' => $member->id, 'method' => 'QR Code', 'time_out' => null]);
+    }
+
     public function test_an_unknown_code_is_rejected(): void
     {
         $this->actingAs($this->staff())
