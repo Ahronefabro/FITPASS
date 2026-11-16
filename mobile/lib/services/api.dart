@@ -74,8 +74,8 @@ class Api {
   static final String baseUrl = _defaultBaseUrl();
 
   static String _defaultBaseUrl() {
-    const configured = String.fromEnvironment('API_URL');
-    if (configured.isNotEmpty) return configured;
+    const fromEnv = String.fromEnvironment('API_URL');
+    if (fromEnv.isNotEmpty) return fromEnv;
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8000';
     }
@@ -182,7 +182,8 @@ class Api {
   }
 
   static Future<String> forgotPassword(String email) async {
-    final body = await _send('POST', '/forgot-password', body: {'email': email});
+    final body =
+        await _send('POST', '/forgot-password', body: {'email': email});
     return body['message'] as String;
   }
 

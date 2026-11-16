@@ -7,9 +7,12 @@ use App\Models\AuditLog;
 use App\Models\Member;
 use App\Models\Plan;
 use App\Models\StaffNotification;
+use App\Mail\WelcomeMail;
+use Illuminate\Contracts\Mail\Mailable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as PasswordRule;
@@ -45,6 +48,8 @@ class AuthController extends Controller
             'membership_type' => 'Monthly Unlimited',
             'amount' => Plan::priceOf($data['plan']),
         ]);
+
+        Mail::to($member->email)->send(new WelcomeMail($member));
 
         AuditLog::record('signed up in the app', $member->name);
         StaffNotification::create([
