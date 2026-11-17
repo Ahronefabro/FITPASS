@@ -240,6 +240,12 @@
             video.muted = true;
             video.playsInline = true;
             video.srcObject = stream;
+            // A front camera (or a laptop webcam, which reports no facing) is
+            // shown mirrored like a selfie view, so moving the code left moves
+            // it left on screen. Only the preview is flipped; jsQR still reads
+            // the raw frames.
+            const facing = stream.getVideoTracks()[0]?.getSettings().facingMode;
+            if (facing !== 'environment') video.classList.add('mirrored');
             el('reader').append(video);
             return video.play().then(() => watch(video));
         }).catch(() => noCamera('Camera unavailable or permission denied.'));

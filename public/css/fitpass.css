@@ -310,6 +310,7 @@ code { padding: 2px 6px; background: #1E1E1E; border-radius: 4px; color: var(--s
 .scanner { position: relative; height: 340px; display: grid; place-items: center; overflow: hidden; background: var(--chrome); border: 1px solid var(--line); border-radius: 8px; }
 .scanner #reader { position: absolute; inset: 0; }
 .scanner #reader video { width: 100%; height: 100%; object-fit: cover; }
+.scanner #reader video.mirrored { transform: scaleX(-1); }
 .scanner .frame { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 16px; text-align: center; pointer-events: none; }
 .scanner .frame::after { content: ''; position: absolute; top: 50%; left: 50%; width: 200px; height: 200px; translate: -50% -50%; background:
     linear-gradient(var(--green), var(--green)) 0 0 / 28px 4px no-repeat,
