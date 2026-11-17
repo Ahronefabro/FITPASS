@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\CheckIn;
 use App\Models\Member;
 use App\Models\Payment;
+use App\Models\StaffNotification;
 use App\Models\User;
 use App\Notifications\MemberResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -100,12 +101,18 @@ class MemberAppApiTest extends TestCase
         $this->signUp();
         $pending = Member::pending()->sole();
 
-        $this->actingAs(User::factory()->staff()->create())
+        $staff = User::factory()->staff()->create();
+
+        $this->actingAs($staff)
             ->get(route('staff.members'))->assertOk()->assertSee('Ana Reyes')->assertSee('CONFIRM PAYMENT');
 
         $this->post(route('staff.members.approve', $pending->id), ['method' => 'Gcash'])->assertRedirect();
 
         $member = Member::sole();
+        $approved = StaffNotification::where('title', 'New member approved')->sole();
+        $this->assertSame('success', $approved->level);
+        $this->assertStringContainsString("Ana Reyes was approved by {$staff->name}", $approved->body);
+        $this->get(route('staff.notifications'))->assertOk()->assertSee('New member approved');
         $this->assertSame('Active', $member->status);
         $this->assertTrue($member->expires_at->isSameDay(today()->addMonth()));
         $this->assertDatabaseHas('payments', [

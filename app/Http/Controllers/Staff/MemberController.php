@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Member;
 use App\Models\Plan;
 use App\Models\Payment;
+use App\Models\StaffNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -115,6 +116,12 @@ class MemberController extends Controller
         });
 
         AuditLog::record("approved app sign-up {$member->name}");
+        StaffNotification::create([
+            'title' => 'New member approved',
+            'body' => "{$member->name} was approved by {$request->user()->name} and is now an active {$member->plan} member until {$member->expires_at->format('F j, Y')}.",
+            'kind' => 'Manual',
+            'level' => 'success',
+        ]);
 
         return back()->with('status', "{$member->name} is now an active member");
     }
