@@ -18,6 +18,7 @@ void main() {
     String status = 'Active',
     int? daysLeft = 20,
     bool notifications = true,
+    int? paymentId,
   }) {
     final today = DateTime.now();
     return Member(
@@ -33,8 +34,58 @@ void main() {
           : DateTime(today.year, today.month, today.day + daysLeft),
       visitsThisMonth: 0,
       notificationsEnabled: notifications,
+      lastPayment: paymentId == null
+          ? null
+          : MemberPayment(
+              id: paymentId,
+              amount: 1000,
+              kind: 'Monthly',
+              method: 'Cash',
+              paidOn: today,
+            ),
     );
   }
+
+  group('payment received', () {
+    const received =
+        'Staff recorded your ₱1,000 Monthly payment by Cash. Thank you!';
+
+    test('shows when staff record a new payment', () async {
+      await Notifications.onMember(member(paymentId: 4));
+      await Notifications.onMember(member(paymentId: 5));
+
+      expect(shown, [received]);
+    });
+
+    test('shows for the first payment of a member who had none', () async {
+      await Notifications.onMember(member());
+      await Notifications.onMember(member(paymentId: 1));
+
+      expect(shown, [received]);
+    });
+
+    test('stays quiet about payments from before this phone looked', () async {
+      await Notifications.onMember(member(paymentId: 4));
+      await Notifications.onMember(member(paymentId: 4));
+
+      expect(shown, isEmpty);
+    });
+
+    test('is not announced twice when the payment approves a sign-up',
+        () async {
+      await Notifications.onMember(member(status: 'Pending', daysLeft: null));
+      await Notifications.onMember(member(paymentId: 1));
+
+      expect(shown, ['Your payment was confirmed. Your QR code is ready.']);
+    });
+
+    test('stays quiet when notifications are off', () async {
+      await Notifications.onMember(member(paymentId: 4, notifications: false));
+      await Notifications.onMember(member(paymentId: 5, notifications: false));
+
+      expect(shown, isEmpty);
+    });
+  });
 
   group('membership approved', () {
     test('shows when a sign-up this phone saw pending is approved', () async {

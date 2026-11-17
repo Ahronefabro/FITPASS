@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/member.dart';
 import 'api.dart';
 
-/// Phone notifications for the two things a member wants to know: their
-/// payment was confirmed, and their membership is about to end.
+/// Phone notifications for what a member wants to know: their sign-up was
+/// approved, staff recorded a payment, and their membership is about to end.
 ///
 /// There is no push server. The app already asks the backend for news while
 /// it is open, and these compare each answer with what this phone saw last
@@ -24,6 +24,7 @@ class Notifications {
   // One id per kind, so a newer notice replaces an older one of the same kind.
   static const _approvedId = 1;
   static const _expiringId = 2;
+  static const _paymentId = 3;
 
   /// Replaces the real notification in tests.
   @visibleForTesting
@@ -56,13 +57,30 @@ class Notifications {
     final prefs = await SharedPreferences.getInstance();
     final pendingKey = 'notify_pending_${member.id}';
     final expiryKey = 'notify_expiry_${member.id}';
+    final paymentKey = 'notify_payment_${member.id}';
 
     // Approved: this phone saw the sign-up pending, and now it is not.
     final wasPending = prefs.getBool(pendingKey);
     await prefs.setBool(pendingKey, member.isPending);
-    if (wasPending == true && !member.isPending) {
+    final approved = wasPending == true && !member.isPending;
+    if (approved) {
       await _show(member, _approvedId, 'Membership approved',
           'Your payment was confirmed. Your QR code is ready.');
+    }
+
+    // Payment received: staff recorded a payment newer than the last one this
+    // phone saw. The first time the app looks, it only takes note, so payments
+    // from before the app was installed stay quiet. Approval already says the
+    // payment was confirmed, so that one is not announced twice.
+    final payment = member.lastPayment;
+    final seenPayment = prefs.getInt(paymentKey);
+    await prefs.setInt(paymentKey, payment?.id ?? 0);
+    if (payment != null &&
+        seenPayment != null &&
+        seenPayment != payment.id &&
+        !approved) {
+      await _show(member, _paymentId, 'Payment received',
+          'Staff recorded your ${_peso(payment.amount)} ${payment.kind} payment by ${payment.method}. Thank you!');
     }
 
     // Ending soon: once for each end date, so a renewal warns again later.
@@ -79,6 +97,17 @@ class Notifications {
     }
   }
 
+
+  /// ₱1,000 or ₱1,250.50.
+  static String _peso(double amount) {
+    final fixed = amount == amount.roundToDouble()
+        ? amount.toStringAsFixed(0)
+        : amount.toStringAsFixed(2);
+    final parts = fixed.split('.');
+    final whole = parts[0].replaceAllMapped(
+        RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
+    return '₱$whole${parts.length > 1 ? '.${parts[1]}' : ''}';
+  }
 
   static String _inDays(int days) => switch (days) {
         0 => 'today',
@@ -111,7 +140,7 @@ class Notifications {
             'fitpass_membership',
             'Membership',
             channelDescription:
-                'Payment confirmed and membership ending soon.',
+                'Payments received and membership ending soon.',
             importance: Importance.high,
             priority: Priority.high,
           ),

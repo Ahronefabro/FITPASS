@@ -23,6 +23,9 @@ class Member {
   /// The switch on the profile screen, as saved on the server.
   final bool notificationsEnabled;
 
+  /// The newest payment staff recorded for this member, if any.
+  final MemberPayment? lastPayment;
+
   const Member({
     required this.id,
     required this.name,
@@ -38,6 +41,7 @@ class Member {
     this.expiresAt,
     required this.visitsThisMonth,
     this.notificationsEnabled = true,
+    this.lastPayment,
   });
 
   bool get isPending => status == 'Pending';
@@ -76,6 +80,39 @@ class Member {
       expiresAt: date(json['expires_at']),
       visitsThisMonth: json['visits_this_month'] as int? ?? 0,
       notificationsEnabled: json['notifications_enabled'] as bool? ?? true,
+      lastPayment: json['last_payment'] == null
+          ? null
+          : MemberPayment.fromJson(
+              json['last_payment'] as Map<String, dynamic>),
     );
   }
+}
+
+/// A payment staff recorded at the front desk.
+class MemberPayment {
+  final int id;
+  final double amount;
+
+  /// Monthly or Walk-in.
+  final String kind;
+
+  /// Gcash or Cash.
+  final String method;
+  final DateTime paidOn;
+
+  const MemberPayment({
+    required this.id,
+    required this.amount,
+    required this.kind,
+    required this.method,
+    required this.paidOn,
+  });
+
+  factory MemberPayment.fromJson(Map<String, dynamic> json) => MemberPayment(
+        id: json['id'] as int,
+        amount: (json['amount'] as num).toDouble(),
+        kind: json['kind'] as String,
+        method: json['method'] as String,
+        paidOn: DateTime.parse(json['paid_on'] as String),
+      );
 }

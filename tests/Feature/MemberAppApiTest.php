@@ -124,6 +124,31 @@ class MemberAppApiTest extends TestCase
             ->assertJsonPath('member.qr_code', $member->qr_code);
     }
 
+    public function test_the_app_sees_the_newest_payment_staff_recorded(): void
+    {
+        $this->signUp();
+        $token = $this->token();
+
+        $this->withToken($token)->getJson('/api/me')->assertJsonPath('member.last_payment', null);
+        $this->app['auth']->forgetGuards();
+
+        $staff = User::factory()->staff()->create();
+        $member = Member::pending()->sole();
+        $this->actingAs($staff)->post(route('staff.members.approve', $member->id), ['method' => 'Gcash']);
+        $this->post(route('staff.payments.store'), [
+            'member_id' => $member->id, 'paid_on' => today()->toDateString(),
+            'kind' => 'Monthly', 'amount' => 800, 'method' => 'Cash',
+        ])->assertRedirect();
+        $this->app['auth']->forgetGuards();
+
+        $this->withToken($token)->getJson('/api/me')
+            ->assertJsonPath('member.last_payment.id', Payment::latest('id')->value('id'))
+            ->assertJsonPath('member.last_payment.amount', 800)
+            ->assertJsonPath('member.last_payment.kind', 'Monthly')
+            ->assertJsonPath('member.last_payment.method', 'Cash')
+            ->assertJsonPath('member.last_payment.paid_on', today()->toDateString());
+    }
+
     public function test_staff_can_reject_a_sign_up_but_not_approve_a_member_twice(): void
     {
         $this->signUp();

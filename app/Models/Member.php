@@ -124,6 +124,11 @@ class Member extends Authenticatable
         return $this->hasMany(CheckIn::class);
     }
 
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     /** The visit this member has not checked out of yet, if there is one. */
     public function openCheckIn(): ?CheckIn
     {
@@ -168,6 +173,10 @@ class Member extends Authenticatable
     /** What the mobile app shows about the member and their membership. */
     public function toApp(): array
     {
+        // The newest payment staff recorded, so the app can tell the member
+        // when another one comes in.
+        $payment = $this->payments()->latest('id')->first();
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -185,6 +194,13 @@ class Member extends Authenticatable
             'visits_this_month' => $this->visits_this_month,
             // A fresh model has no value until it is read back, and the column defaults to on.
             'notifications_enabled' => $this->notifications_enabled ?? true,
+            'last_payment' => $payment ? [
+                'id' => $payment->id,
+                'amount' => (float) $payment->amount,
+                'kind' => $payment->kind,
+                'method' => $payment->method,
+                'paid_on' => $payment->paid_on->toDateString(),
+            ] : null,
         ];
     }
 }
