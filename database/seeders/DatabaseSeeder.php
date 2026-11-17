@@ -22,6 +22,9 @@ class DatabaseSeeder extends Seeder
             ['name' => $staff->name, 'role' => 'Staff', 'shift_start' => '06:00', 'status' => 'Active'],
         );
 
+        // A member who can log in to the mobile app. Change the password before going live.
+        $this->sampleMember();
+
         // Members created before the staff screens existed have no contact or code.
         $this->backfill();
 
@@ -38,6 +41,23 @@ class DatabaseSeeder extends Seeder
             'role' => $role,
             'password' => Hash::make('password'),
         ]))->save();
+    }
+
+    private function sampleMember(): void
+    {
+        // withPending() so a second seed finds the row whatever its dates are.
+        $member = Member::withPending()->firstOrNew(['email' => 'member@fitpass.test']);
+
+        $member->forceFill([
+            'name' => 'Sample Member',
+            'plan' => 'Regular',
+            'membership_type' => 'Monthly Unlimited',
+            'contact' => $member->contact ?? '09170000000',
+            'password' => 'password',
+            'amount' => 1000,
+            'joined_at' => '2026-10-25',
+            'expires_at' => '2026-11-25',
+        ])->save();
     }
 
     private function backfill(): void
