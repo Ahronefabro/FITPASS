@@ -217,6 +217,41 @@ class StaffPortalTest extends TestCase
         $this->assertSame(0, CheckIn::count());
     }
 
+    public function test_the_scanner_turns_away_an_expired_member(): void
+    {
+        $member = $this->member(['expires_at' => today()->subDay()]);
+
+        $this->actingAs($this->staff())
+            ->postJson(route('staff.scanner.record'), ['code' => $member->qr_code])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['code' => 'Membership expired']);
+
+        $this->assertSame(0, CheckIn::count());
+    }
+
+    public function test_an_expired_member_already_inside_can_still_be_checked_out(): void
+    {
+        $member = $this->member(['expires_at' => today()->subDay()]);
+        CheckIn::create(['member_id' => $member->id, 'time_in' => now()->subHour(), 'method' => 'QR Code']);
+
+        $this->actingAs($this->staff())
+            ->postJson(route('staff.scanner.record'), ['code' => $member->qr_code])
+            ->assertOk()
+            ->assertJson(['action' => 'Check Out']);
+
+        $this->assertNotNull(CheckIn::sole()->time_out);
+    }
+
+    public function test_a_member_whose_last_day_is_today_can_still_check_in(): void
+    {
+        $member = $this->member(['expires_at' => today()]);
+
+        $this->actingAs($this->staff())
+            ->postJson(route('staff.scanner.record'), ['code' => $member->qr_code])
+            ->assertOk()
+            ->assertJson(['action' => 'Check In']);
+    }
+
     public function test_a_hand_typed_code_matches_whatever_its_case_or_spacing(): void
     {
         $member = $this->member();

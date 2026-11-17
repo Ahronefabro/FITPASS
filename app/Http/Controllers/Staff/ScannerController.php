@@ -26,6 +26,15 @@ class ScannerController extends Controller
     {
         $member = $this->find($request);
         $action = $member->openCheckIn() ? 'Check Out' : 'Check In';
+
+        // An expired member is turned away at the door. One already inside
+        // can still be checked out, so no visit is left open.
+        if ($action === 'Check In' && $member->status === 'Expired') {
+            throw ValidationException::withMessages([
+                'code' => "Membership expired on {$member->expires_at->format('F j, Y')}. {$member->name} must renew first.",
+            ]);
+        }
+
         $message = $this->logAttendance($member, $action, 'QR Code', 'code');
 
         return response()->json([

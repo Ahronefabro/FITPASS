@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
 
         // Members who can log in to the mobile app. Change the passwords before going live.
         $this->sampleMember('member@fitpass.test', 'Sample Member', '09170000000', '2026-10-25', '2026-11-25');
-        $this->sampleMember('today@fitpass.test', 'Expires Today', '09170000001', '2026-10-17', '2026-11-17');
+        $this->sampleMember('today@fitpass.test', 'Expired Member', '09170000001', '2026-10-16', '2026-11-16');
 
         // Members created before the staff screens existed have no contact or code.
         $this->backfill();
