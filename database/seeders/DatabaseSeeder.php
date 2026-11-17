@@ -22,8 +22,9 @@ class DatabaseSeeder extends Seeder
             ['name' => $staff->name, 'role' => 'Staff', 'shift_start' => '06:00', 'status' => 'Active'],
         );
 
-        // A member who can log in to the mobile app. Change the password before going live.
-        $this->sampleMember();
+        // Members who can log in to the mobile app. Change the passwords before going live.
+        $this->sampleMember('member@fitpass.test', 'Sample Member', '09170000000', '2026-10-25', '2026-11-25');
+        $this->sampleMember('today@fitpass.test', 'Expires Today', '09170000001', '2026-10-17', '2026-11-17');
 
         // Members created before the staff screens existed have no contact or code.
         $this->backfill();
@@ -43,20 +44,20 @@ class DatabaseSeeder extends Seeder
         ]))->save();
     }
 
-    private function sampleMember(): void
+    private function sampleMember(string $email, string $name, string $contact, string $joined, string $expires): void
     {
         // withPending() so a second seed finds the row whatever its dates are.
-        $member = Member::withPending()->firstOrNew(['email' => 'member@fitpass.test']);
+        $member = Member::withPending()->firstOrNew(['email' => $email]);
 
         $member->forceFill([
-            'name' => 'Sample Member',
+            'name' => $name,
             'plan' => 'Regular',
             'membership_type' => 'Monthly Unlimited',
-            'contact' => $member->contact ?? '09170000000',
+            'contact' => $member->contact ?? $contact,
             'password' => 'password',
             'amount' => 1000,
-            'joined_at' => '2026-10-25',
-            'expires_at' => '2026-11-25',
+            'joined_at' => $joined,
+            'expires_at' => $expires,
         ])->save();
     }
 
