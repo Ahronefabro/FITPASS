@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
+use App\Models\Member;
 use App\Models\StaffNotification;
 use Illuminate\Http\Request;
 
@@ -28,7 +29,11 @@ class NotificationController extends Controller
     // Used by the sidebar badge to refresh the number without reloading.
     public function count()
     {
-        return response()->json(['count' => StaffNotification::unread()->count()]);
+        return response()->json([
+            'count' => StaffNotification::unread()->count(),
+            // Sign-ups waiting for their payment to be confirmed, for the Members badge.
+            'pending' => Member::pending()->count(),
+        ]);
     }
 
     public function markAllRead()

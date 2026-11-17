@@ -124,6 +124,32 @@ class MemberAppApiTest extends TestCase
             ->assertJsonPath('member.qr_code', $member->qr_code);
     }
 
+    public function test_the_members_link_counts_sign_ups_waiting_for_payment(): void
+    {
+        $this->signUp();
+        $this->signUp(['email' => 'ben@example.com', 'name' => 'Ben Cruz']);
+        $this->app['auth']->forgetGuards();
+
+        $staff = User::factory()->staff()->create();
+        $this->actingAs($staff);
+
+        $this->get(route('staff.dashboard'))->assertOk()
+            ->assertSeeInOrder(['Members', '<span class="notif-badge">2</span>', 'Manual Time'], false);
+        $this->getJson(route('staff.notifications.count'))->assertJsonPath('pending', 2);
+
+        $this->post(route('staff.members.approve', Member::pending()->where('email', 'ana@example.com')->value('id')), ['method' => 'Cash']);
+        $this->getJson(route('staff.notifications.count'))->assertJsonPath('pending', 1);
+
+        $this->post(route('staff.members.approve', Member::pending()->value('id')), ['method' => 'Cash']);
+        $this->getJson(route('staff.notifications.count'))->assertJsonPath('pending', 0);
+
+        // The Members link itself, from its opening tag to its closing one.
+        $html = $this->get(route('staff.dashboard'))->getContent();
+        preg_match('~<a href="'.preg_quote(route('staff.members'), '~').'".*?</a>~s', $html, $link);
+        $this->assertStringContainsString('Members', $link[0]);
+        $this->assertStringNotContainsString('notif-badge', $link[0]);
+    }
+
     public function test_the_app_sees_the_newest_payment_staff_recorded(): void
     {
         $this->signUp();

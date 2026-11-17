@@ -9,6 +9,9 @@
         ['staff.notifications', 'notifications', 'Notifications'],
     ];
     $unreadCount = $unreadCount ?? 0;
+    $pendingCount = $pendingCount ?? 0;
+    // The red number on a sidebar link.
+    $badges = ['staff.notifications' => $unreadCount, 'staff.members' => $pendingCount];
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -33,8 +36,8 @@
                 <a href="{{ route($item[0]) }}" @class(['active' => request()->routeIs($item[0])])>
                     <span class="material-symbols-outlined">{{ $item[1] }}</span>{{ $item[2] }}
 
-                    @if ($item[0] === 'staff.notifications' && $unreadCount > 0)
-                        <span class="notif-badge">{{ $unreadCount > 9 ? '9+' : $unreadCount }}</span>
+                    @if (($badges[$item[0]] ?? 0) > 0)
+                        <span class="notif-badge">{{ $badges[$item[0]] > 9 ? '9+' : $badges[$item[0]] }}</span>
                     @endif
                 </a>
             @endforeach
@@ -45,7 +48,7 @@
         <header class="topbar">
             <button type="button" class="icon-btn nav-toggle" data-nav-toggle aria-controls="sidebar" aria-label="Open menu">
                 <span class="material-symbols-outlined">menu</span>
-                @if ($unreadCount > 0)
+                @if ($unreadCount + $pendingCount > 0)
                     <span class="notif-dot"></span>
                 @endif
             </button>
@@ -114,34 +117,41 @@
         });
     });
 
-    // Refresh the red notification badge every 30 seconds.
+    // Refresh the red badges every 30 seconds: unread notifications on
+    // Notifications, sign-ups waiting for payment on Members.
+    const setBadge = (href, count) => {
+        const link = document.querySelector(`.sidebar nav a[href="${href}"]`);
+        if (!link) return;
+        let badge = link.querySelector('.notif-badge');
+
+        if (count > 0) {
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'notif-badge';
+                link.appendChild(badge);
+            }
+            badge.textContent = count > 9 ? '9+' : count;
+        } else {
+            badge?.remove();
+        }
+    };
+
     setInterval(async () => {
         try {
             const res = await fetch("{{ route('staff.notifications.count') }}", { headers: { Accept: 'application/json' } });
-            const { count } = await res.json();
+            const { count, pending = 0 } = await res.json();
 
-            const link = document.querySelector('.sidebar nav a[href="{{ route('staff.notifications') }}"]');
-            let badge = link.querySelector('.notif-badge');
-
-            if (count > 0) {
-                if (!badge) {
-                    badge = document.createElement('span');
-                    badge.className = 'notif-badge';
-                    link.appendChild(badge);
-                }
-                badge.textContent = count > 9 ? '9+' : count;
-            } else {
-                badge?.remove();
-            }
+            setBadge(@json(route('staff.notifications')), count);
+            setBadge(@json(route('staff.members')), pending);
 
             // Dot on the mobile menu button.
             const toggle = document.querySelector('.nav-toggle');
             let dot = toggle.querySelector('.notif-dot');
-            if (count > 0 && !dot) {
+            if (count + pending > 0 && !dot) {
                 dot = document.createElement('span');
                 dot.className = 'notif-dot';
                 toggle.appendChild(dot);
-            } else if (count === 0) {
+            } else if (count + pending === 0) {
                 dot?.remove();
             }
         } catch (e) {}
