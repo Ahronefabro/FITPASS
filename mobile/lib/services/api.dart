@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -66,8 +65,7 @@ class Plan {
 ///
 /// The server address can be set at build time, e.g. for a real phone:
 ///   flutter run --dart-define=API_URL=http://192.168.1.10:8000
-/// Without it, the app looks for `php artisan serve` on this computer: the
-/// Android emulator reaches it at 10.0.2.2, everything else at localhost.
+/// Without it, the app talks to the live server at https://fitpass.site.
 class Api {
   Api._();
 
@@ -75,11 +73,10 @@ class Api {
 
   static String _defaultBaseUrl() {
     const fromEnv = String.fromEnvironment('API_URL');
-    if (fromEnv.isNotEmpty) return fromEnv;
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'https://fitpass.site/';
-    }
-    return 'https://fitpass.site/';
+    // Paths are appended as '/api/...', so drop any trailing slash to avoid
+    // '//api/...', which Laravel answers with 404.
+    if (fromEnv.isNotEmpty) return fromEnv.replaceAll(RegExp(r'/+$'), '');
+    return 'https://fitpass.site';
   }
 
   static const _tokenKey = 'api_token';
