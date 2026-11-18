@@ -14,7 +14,7 @@
         </button>
     </div>
 
-    <section class="panel">
+    <section class="panel alt">
         @php
             // Pair each Check In with its Check Out so every visit is a single line.
             $sessions = [];

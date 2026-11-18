@@ -53,6 +53,7 @@ class MemberController extends Controller
             'cards' => [
                 ['Total Members', Member::count(), Member::whereDate('joined_at', '>=', now()->startOfMonth())->count().' joined this month'],
                 ['Active', Member::active()->count(), Member::expiringSoon()->count().' expiring soon'],
+                ['Regular', Member::where('plan', 'Regular')->count(), 'On the regular rate'],
                 ['Students', Member::where('plan', 'Student')->count(), 'On the student rate'],
                 ['Seniors', Member::where('plan', 'Senior')->count(), 'On the senior rate'],
             ],

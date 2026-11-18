@@ -6,7 +6,7 @@
     @include('partials.cards')
 
     <section class="panel alt">
-        <h2>Today's Attendance</h2>
+        <h2>{{ $filter === 'Currently In' ? 'Currently In the Gym' : "Today's Attendance" }}</h2>
         <div class="toolbar">
             @foreach ($filters as $option)
                 <a href="{{ route('staff.checkins', ['filter' => $option]) }}" @class(['chip', 'active' => $filter === $option])>{{ $option }}</a>

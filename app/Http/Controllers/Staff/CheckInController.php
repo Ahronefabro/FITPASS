@@ -26,14 +26,18 @@ class CheckInController extends Controller
         $ins = $log->where('action', 'Check In')->count();
         $outs = $log->where('action', 'Check Out')->count();
 
-        // One row per visit, so the time in and the time out sit side by side.
-        $rows = CheckIn::with('member')
-            ->where(fn ($query) => $query->whereDate('time_in', today())->orWhereDate('time_out', today()))
-            ->when($filter === 'QR Code', fn ($query) => $query->where('method', 'QR Code'))
-            ->when($filter === 'Manual', fn ($query) => $query->where('method', 'Manual'))
-            // Arrivals that have not been closed out yet.
-            ->when($filter === 'Currently In', fn ($query) => $query->whereNull('time_out'))
-            ->latest('time_in')->get();
+        $query = CheckIn::with('member');
+
+        if ($filter === 'Currently In') {
+            // Every open visit, any date. Matches the "Currently In" card.
+            $query->whereNull('time_out');
+        } else {
+            $query->where(fn ($q) => $q->whereDate('time_in', today())->orWhereDate('time_out', today()))
+                ->when($filter === 'QR Code', fn ($q) => $q->where('method', 'QR Code'))
+                ->when($filter === 'Manual', fn ($q) => $q->where('method', 'Manual'));
+        }
+
+        $rows = $query->latest('time_in')->get();
 
         return view('staff.checkins', [
             'filter' => $filter,
