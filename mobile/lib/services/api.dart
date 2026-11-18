@@ -77,9 +77,9 @@ class Api {
     const fromEnv = String.fromEnvironment('API_URL');
     if (fromEnv.isNotEmpty) return fromEnv;
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000';
+      return 'https://fitpass.site/';
     }
-    return 'http://localhost:8000';
+    return 'https://fitpass.site/';
   }
 
   static const _tokenKey = 'api_token';
