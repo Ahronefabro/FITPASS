@@ -125,20 +125,20 @@ class StaffPortalTest extends TestCase
         $this->get(route('staff.payments', ['filter' => 'Monthly']))->assertDontSee('Showing');
     }
 
-    public function test_the_owners_attendance_is_paged_twenty_at_a_time(): void
+    public function test_the_owners_attendance_is_paged_ten_at_a_time(): void
     {
-        foreach (range(1, 21) as $i) {
+        foreach (range(1, 11) as $i) {
             CheckIn::create(['guest_name' => "Walk-in {$i}", 'time_in' => today()->setTime(6, 0)->addMinutes($i), 'method' => 'Manual']);
         }
 
         $this->actingAs($this->owner());
 
         $this->get(route('checkins.index'))->assertOk()
-            ->assertSee('Showing 1–20 of 21')
-            ->assertSee('Walk-in 21')->assertDontSee('Walk-in 1<', false);
+            ->assertSee('Showing 1–10 of 11')
+            ->assertSee('Walk-in 11')->assertDontSee('Walk-in 1<', false);
 
         $this->get(route('checkins.index', ['page' => 2]))->assertOk()
-            ->assertSee('Showing 21–21 of 21')->assertSee('Walk-in 1<', false);
+            ->assertSee('Showing 11–11 of 11')->assertSee('Walk-in 1<', false);
     }
 
     public function test_the_owners_members_are_paged_and_keep_the_filter_and_view(): void
@@ -156,9 +156,9 @@ class StaffPortalTest extends TestCase
         $this->get(route('members.index', ['page' => 2]))
             ->assertSee('Showing 11–13 of 13')->assertSee('Member 13');
 
-        // Twelve in the grid, and the page links keep the filter and the view.
+        // Ten in the grid too, and the page links keep the filter and the view.
         $this->get(route('members.index', ['filter' => 'Regular', 'view' => 'grid']))
-            ->assertSee('Showing 1–12 of 13')
+            ->assertSee('Showing 1–10 of 13')
             ->assertSee('filter=Regular&amp;view=grid&amp;page=2', false);
     }
 

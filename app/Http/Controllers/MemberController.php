@@ -19,8 +19,8 @@ class MemberController extends Controller
             ->when(in_array($filter, Plan::names(), true), fn ($q) => $q->where('plan', $filter))
             ->when($filter === 'Expiring soon', fn ($q) => $q->expiringSoon())
             ->orderBy('name')
-            // The same page sizes as the staff Members screen.
-            ->paginate($view === 'grid' ? 12 : 10)
+            // Ten a page, like every other list.
+            ->paginate(10)
             ->withQueryString();
 
         return view('owner.members', [
