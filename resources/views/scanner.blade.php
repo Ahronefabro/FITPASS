@@ -24,10 +24,15 @@
             <span class="avatar"><span class="material-symbols-outlined">person</span></span>
             <span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->role }}</small></span>
         </span>
+        <a class="btn" href="{{ $backUrl }}">
+            <span class="material-symbols-outlined">{{ $backIcon }}</span>{{ $backLabel }}
+        </a>
+    @else
+        {{-- Just a profile icon for visitors: staff and the owner know it is the way in. --}}
+        <a class="profile-btn" href="{{ route('login') }}" title="Staff / Owner login" aria-label="Staff / Owner login">
+            <span class="material-symbols-outlined">person</span>
+        </a>
     @endauth
-    <a class="btn" href="{{ $backUrl }}">
-        <span class="material-symbols-outlined">{{ $backIcon }}</span>{{ $backLabel }}
-    </a>
 </header>
 
 <main class="content">

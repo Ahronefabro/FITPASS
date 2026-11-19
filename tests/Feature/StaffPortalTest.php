@@ -220,8 +220,9 @@ class StaffPortalTest extends TestCase
             ->assertOk()
             ->assertSee('Member QR Scanner')
             ->assertSee(json_encode(route('scan.record')), false)
-            ->assertSee(route('login'), false)
-            ->assertSee('Staff / Owner login');
+            // A profile icon that leads to the sign-in.
+            ->assertSee('class="profile-btn" href="'.route('login').'"', false)
+            ->assertSee('aria-label="Staff / Owner login"', false);
 
         // The same check in and check out as the staff scanner, on the same tables.
         $this->postJson(route('scan.record'), ['code' => $member->qr_code])
