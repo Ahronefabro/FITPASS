@@ -29,7 +29,7 @@
 </header>
 
 <main class="content">
-    <h1>QR Check-in Scanner</h1>
+    <h1>Membership QR Scanner</h1>
 
     <div class="grid g-2">
         <section class="panel">
