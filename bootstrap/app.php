@@ -24,7 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Someone already signed in belongs on their own portal's home.
         $middleware->redirectUsersTo(
-            fn (Request $request) => route(Portal::homeRoute(Portal::forRole($request->user()?->role)))
+            fn (Request $request) => route(Portal::landingRoute($request->user()?->role))
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {

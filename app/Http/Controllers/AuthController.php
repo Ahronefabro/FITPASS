@@ -78,7 +78,7 @@ class AuthController extends Controller
     private function landingUrl(Request $request, User $user, string $portal): string
     {
         $intended = $request->session()->pull('url.intended');
-        $home = route(Portal::homeRoute($portal));
+        $home = route(Portal::landingRoute($user->role));
 
         if (! is_string($intended) || $intended === '') {
             return $home;

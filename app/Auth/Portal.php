@@ -61,6 +61,16 @@ final class Portal
     }
 
     /**
+     * Where a sign-in lands: the QR scanner, for every role allowed to use it,
+     * so the gate is ready the moment someone signs in. Anyone else gets their
+     * portal's home.
+     */
+    public static function landingRoute(?string $role): string
+    {
+        return self::allows(self::STAFF, $role) ? 'staff.scanner' : self::homeRoute(self::forRole($role));
+    }
+
+    /**
      * Which portal a url within this app belongs to, read from the portal
      * middleware on its route. The url itself is no guide: the owner's own
      * staff directory sits at /staff, right inside the staff portal's prefix.

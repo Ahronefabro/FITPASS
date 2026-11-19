@@ -57,12 +57,12 @@ class StaffPortalTest extends TestCase
         $this->get(route('staff.dashboard'))->assertRedirect(route('login'));
     }
 
-    public function test_a_staff_account_signs_in_and_lands_on_the_staff_dashboard(): void
+    public function test_a_staff_account_signs_in_and_lands_on_the_scanner(): void
     {
         $this->staff();
 
         $this->post(route('login'), ['username' => 'frontdesk', 'password' => 'secret'])
-            ->assertRedirect(route('staff.dashboard'));
+            ->assertRedirect(route('staff.scanner'));
 
         $this->assertAuthenticated();
     }

@@ -1,5 +1,6 @@
 @php
     $nav = [
+        ['staff.scanner', 'qr_code_scanner', 'Scanner'],
         ['overview', 'dashboard_customize', 'Overview'],
         ['analytics', 'show_chart', 'Analytics'],
         ['members.index', 'group', 'Members'],

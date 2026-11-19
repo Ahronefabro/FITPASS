@@ -41,6 +41,13 @@ Route::post('/member/reset-password', [MemberPasswordResetController::class, 'up
 // working for anyone who bookmarked it.
 Route::redirect('/staff/login', '/login');
 
+// The front page is the QR scanner, for every role that may open it (staff and
+// the owner). A visitor who is not signed in goes to the login first, and the
+// sign-in brings them straight back here.
+Route::middleware(['auth', 'portal:staff'])->group(function () {
+    Route::redirect('/', '/staff/scanner')->name('home');
+});
+
 // Outside the portal groups, so anyone signed in can sign out, and manage
 // their own account, whatever their role has since become.
 Route::middleware('auth')->group(function () {
@@ -56,7 +63,7 @@ Route::middleware('auth')->group(function () {
 // ---------------------------------------------------------------------
 
 Route::middleware(['auth', 'portal:owner'])->group(function () {
-    Route::get('/', [DashboardController::class, 'overview'])->name('overview');
+    Route::get('/overview', [DashboardController::class, 'overview'])->name('overview');
     Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');
     Route::get('/audit-logs', [DashboardController::class, 'auditLogs'])->name('audit-logs');
 

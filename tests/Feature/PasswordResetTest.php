@@ -84,7 +84,7 @@ class PasswordResetTest extends TestCase
         $this->assertTrue(AuditLog::where('action', 'reset their password')->where('user_name', 'Front Desk')->exists());
 
         $this->post(route('login'), ['username' => 'desk', 'password' => 'brand-new-pass'])
-            ->assertRedirect(route('staff.dashboard'));
+            ->assertRedirect(route('staff.scanner'));
     }
 
     public function test_a_bad_token_changes_nothing(): void
