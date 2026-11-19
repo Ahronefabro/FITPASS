@@ -1,0 +1,21 @@
+# On the shared hosting the whole project sits in public_html, but only the
+# public/ folder is meant for the web. Serve every request from there, so
+# fitpass.site/login and the app's fitpass.site/api work, and the code, the
+# logs and the database dump outside public/ can never be downloaded.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Pass the app's sign-in token on to Laravel.
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Links that already include /public keep working.
+    RewriteRule ^public(/.*)?$ - [L]
+
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Without mod_rewrite, refuse everything rather than expose the project.
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>
