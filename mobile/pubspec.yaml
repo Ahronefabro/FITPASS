@@ -31,3 +31,20 @@ flutter:
     - assets/landing.jpg
     - assets/logo.png
     - assets/bg.png
+
+# The FitPass logo as the app icon on every platform. Sources are built from
+# assets/logo.png at its original proportions; regenerate after changing them:
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+  android: true
+  adaptive_icon_background: "#1B1B1B"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  adaptive_icon_foreground_inset: 0
+  ios: true
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+    background_color: "#1B1B1B"
+    theme_color: "#1B1B1B"
