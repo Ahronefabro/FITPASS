@@ -1,12 +1,20 @@
 {{-- A page of its own, outside the staff shell: no sidebar, no menus, just the
      camera and the member card, so it can stay open on the gate tablet. Scans
-     still go to staff.scanner.record, the same signed-in staff session. --}}
+     still go to staff.scanner.record, the same signed-in staff session.
+     The front page shows this same screen to anyone, and passes its own
+     record url and way out. --}}
+@php
+    $recordUrl ??= route('staff.scanner.record');
+    $backUrl ??= route('staff.dashboard');
+    $backLabel ??= 'Staff portal';
+    $backIcon ??= 'arrow_back';
+@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Scanner · FitPass Staff</title>
+    <title>Scanner · FitPass</title>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=block">
@@ -14,17 +22,19 @@
 </head>
 <body class="scanner-page">
 <header class="topbar scanner-bar">
-    <a class="brand" href="{{ route('staff.dashboard') }}">
+    <a class="brand" href="{{ $backUrl }}">
         <img src="{{ asset('images/logo.png') }}" alt="" onerror="this.remove()">
         <span><b>FIT<em>PASS</em></b><small>GYM</small></span>
     </a>
     <span class="today">{{ now()->format('l, F j') }}</span>
-    <span class="user">
-        <span class="avatar"><span class="material-symbols-outlined">person</span></span>
-        <span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->role }}</small></span>
-    </span>
-    <a class="btn" href="{{ route('staff.dashboard') }}">
-        <span class="material-symbols-outlined">arrow_back</span>Staff portal
+    @auth
+        <span class="user">
+            <span class="avatar"><span class="material-symbols-outlined">person</span></span>
+            <span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->role }}</small></span>
+        </span>
+    @endauth
+    <a class="btn" href="{{ $backUrl }}">
+        <span class="material-symbols-outlined">{{ $backIcon }}</span>{{ $backLabel }}
     </a>
 </header>
 
@@ -83,7 +93,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-    const record = @json(route('staff.scanner.record'));
+    const record = @json($recordUrl);
     const token = @json(csrf_token());
 
     const el = id => document.getElementById(id);
@@ -112,6 +122,12 @@
         headers: {'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token},
         body: JSON.stringify(body),
     }).then(async response => {
+        // The page's session ran out while it sat open on the gate overnight.
+        // A reload gets a fresh one; the scan has to be made again.
+        if (response.status === 419) {
+            location.reload();
+            throw new Error('Page expired. Reloading, please scan again.');
+        }
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.message || 'Could not reach the server.');
         return data;

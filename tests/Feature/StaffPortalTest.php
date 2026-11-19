@@ -207,6 +207,61 @@ class StaffPortalTest extends TestCase
         $this->assertDatabaseHas('check_ins', ['member_id' => $member->id, 'method' => 'QR Code', 'time_out' => null]);
     }
 
+    public function test_the_front_page_scanner_records_without_a_sign_in(): void
+    {
+        $member = $this->member();
+
+        // Anyone can open it; the way out is the sign-in.
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Member QR Scanner')
+            ->assertSee(json_encode(route('scan.record')), false)
+            ->assertSee(route('login'), false)
+            ->assertSee('Staff / Owner login');
+
+        // The same check in and check out as the staff scanner, on the same tables.
+        $this->postJson(route('scan.record'), ['code' => $member->qr_code])
+            ->assertOk()
+            ->assertJson(['action' => 'Check In']);
+        $this->assertDatabaseHas('check_ins', ['member_id' => $member->id, 'method' => 'QR Code', 'time_out' => null]);
+
+        $this->postJson(route('scan.record'), ['code' => $member->qr_code])
+            ->assertJson(['action' => 'Check Out']);
+        $this->assertSame(1, CheckIn::whereNotNull('time_out')->count());
+
+        // So it shows in both portals' attendance screens.
+        $this->actingAs($this->staff())->get(route('staff.checkins'))->assertOk()->assertSee($member->name);
+        $this->actingAs($this->owner())->get(route('checkins.index'))->assertOk()->assertSee($member->name);
+    }
+
+    public function test_the_front_page_scanner_still_checks_codes_and_memberships(): void
+    {
+        $this->postJson(route('scan.record'), ['code' => 'FP-NOPE'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('code');
+
+        $expired = $this->member(['expires_at' => now()->subDay()]);
+        $this->postJson(route('scan.record'), ['code' => $expired->qr_code])
+            ->assertStatus(422);
+
+        $this->assertSame(0, CheckIn::count());
+    }
+
+    public function test_the_front_page_scanner_is_rate_limited(): void
+    {
+        for ($i = 0; $i < 30; $i++) {
+            $this->postJson(route('scan.record'), ['code' => 'FP-GUESS'.$i]);
+        }
+
+        $this->postJson(route('scan.record'), ['code' => 'FP-GUESS'])->assertStatus(429);
+    }
+
+    public function test_signed_in_users_see_the_front_page_scanner_with_a_way_back_to_their_portal(): void
+    {
+        $this->actingAs($this->staff())->get('/')->assertOk()->assertSee(route('staff.dashboard'), false);
+        $this->actingAs($this->owner())->get('/')->assertOk()->assertSee(route('overview'), false)->assertSee('Owner portal');
+    }
+
     public function test_an_unknown_code_is_rejected(): void
     {
         $this->actingAs($this->staff())

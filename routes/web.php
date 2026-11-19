@@ -15,6 +15,7 @@ use App\Http\Controllers\Staff\MemberController as StaffMemberController;
 use App\Http\Controllers\Staff\NotificationController;
 use App\Http\Controllers\Staff\PaymentController;
 use App\Http\Controllers\Staff\ScannerController;
+use App\Http\Controllers\PublicScannerController;
 use App\Http\Controllers\StaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +42,17 @@ Route::post('/member/reset-password', [MemberPasswordResetController::class, 'up
 // working for anyone who bookmarked it.
 Route::redirect('/staff/login', '/login');
 
+// ---------------------------------------------------------------------
+// The front page: the member QR scanner, open without signing in, so the gate
+// tablet only has to load fitpass.site. Scans go through the same code and the
+// same tables as the staff scanner, so they show up in both portals.
+// ---------------------------------------------------------------------
+
+Route::get('/', [PublicScannerController::class, 'index'])->name('home');
+Route::post('/scan', [PublicScannerController::class, 'store'])
+    ->middleware('throttle:public-scanner')
+    ->name('scan.record');
+
 // Outside the portal groups, so anyone signed in can sign out, and manage
 // their own account, whatever their role has since become.
 Route::middleware('auth')->group(function () {
@@ -56,7 +68,7 @@ Route::middleware('auth')->group(function () {
 // ---------------------------------------------------------------------
 
 Route::middleware(['auth', 'portal:owner'])->group(function () {
-    Route::get('/', [DashboardController::class, 'overview'])->name('overview');
+    Route::get('/overview', [DashboardController::class, 'overview'])->name('overview');
     Route::get('/analytics', [DashboardController::class, 'analytics'])->name('analytics');
     Route::get('/audit-logs', [DashboardController::class, 'auditLogs'])->name('audit-logs');
 

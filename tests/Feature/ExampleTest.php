@@ -2,15 +2,14 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
-    /** Every page is behind the sign-in, so the front page is the login. */
-    public function test_the_application_sends_a_visitor_to_the_login(): void
+    /** The front page is the member scanner, open without signing in. */
+    public function test_the_front_page_is_the_scanner(): void
     {
-        $this->get('/')->assertRedirect(route('login'));
+        $this->get('/')->assertOk()->assertSee('Member QR Scanner');
 
         $this->get(route('login'))->assertOk();
     }
