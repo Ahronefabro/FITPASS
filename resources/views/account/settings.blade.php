@@ -16,7 +16,7 @@
         @error('username', 'username') <p class="field-error">{{ $message }}</p> @enderror
 
         <label>Current password
-            <input type="password" name="current_password" required autocomplete="current-password">
+            @include('partials.password-input', ['name' => 'current_password', 'autocomplete' => 'current-password'])
         </label>
         @error('current_password', 'username') <p class="field-error">{{ $message }}</p> @enderror
 
@@ -28,17 +28,17 @@
         <h2>Change password</h2>
 
         <label>Current password
-            <input type="password" name="current_password" required autocomplete="current-password">
+            @include('partials.password-input', ['name' => 'current_password', 'autocomplete' => 'current-password'])
         </label>
         @error('current_password', 'password') <p class="field-error">{{ $message }}</p> @enderror
 
         <label>New password
-            <input type="password" name="password" required autocomplete="new-password">
+            @include('partials.password-input', ['name' => 'password', 'autocomplete' => 'new-password'])
         </label>
         @error('password', 'password') <p class="field-error">{{ $message }}</p> @enderror
 
         <label>Confirm new password
-            <input type="password" name="password_confirmation" required autocomplete="new-password">
+            @include('partials.password-input', ['name' => 'password_confirmation', 'autocomplete' => 'new-password'])
         </label>
 
         <button class="btn-primary" type="submit">Save password</button>

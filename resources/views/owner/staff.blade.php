@@ -82,7 +82,7 @@
             <label>Full name <input name="name" value="{{ old('name') }}" required></label>
             <label>Username <input name="username" value="{{ old('username') }}" autocomplete="off" required></label>
             <label>Email <input type="email" name="email" value="{{ old('email') }}" autocomplete="off" required></label>
-            <label>Starting password <input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
+            <label>Starting password @include('partials.password-input', ['name' => 'password', 'autocomplete' => 'new-password', 'minlength' => 8])</label>
             <label>Shift start <input type="time" name="shift_start" value="{{ old('shift_start', '06:00') }}" required></label>
             <label>Status
                 <select name="status">

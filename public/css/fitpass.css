@@ -385,6 +385,16 @@ td select { padding: 6px 10px; background: #1E1E1E; border: 1px solid var(--line
 }
 .account-card input:focus { border-color: var(--green); }
 .field-error { color: var(--red); font-size: 13px; margin: -6px 0 0; }
+
+/* Password boxes in the portals, with an eye button to show what was typed. */
+.pw-toggle { position: relative; display: block; margin-top: 6px; }
+.account-card .pw-toggle { margin-top: 0; }
+.pw-toggle input { width: 100%; margin-top: 0; padding-right: 44px; }
+.pw-toggle button {
+    position: absolute; right: 8px; top: 50%; translate: 0 -50%; display: flex; padding: 4px;
+    background: none; border: 0; color: var(--grey); cursor: pointer;
+}
+.pw-toggle button:hover { color: #fff; }
 .btn-primary {
     background: #1E3A29; color: var(--green); border: 1px solid var(--green); border-radius: 8px;
     padding: 10px 18px; font-weight: 700; cursor: pointer; align-self: flex-start;
