@@ -1,13 +1,6 @@
 {{-- A page of its own, outside the staff shell: no sidebar, no menus, just the
      camera and the member card, so it can stay open on the gate tablet. Scans
      still go to staff.scanner.record, the same signed-in staff session. --}}
-@php
-    // The scanner is the front page for staff and the owner alike, so the way
-    // out leads back to whichever portal the viewer signs in to.
-    $ownPortal = \App\Auth\Portal::forRole(auth()->user()->role);
-    $backUrl = route(\App\Auth\Portal::homeRoute($ownPortal));
-    $backLabel = $ownPortal === \App\Auth\Portal::OWNER ? 'Owner portal' : 'Staff portal';
-@endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,7 +14,7 @@
 </head>
 <body class="scanner-page">
 <header class="topbar scanner-bar">
-    <a class="brand" href="{{ $backUrl }}">
+    <a class="brand" href="{{ route('staff.dashboard') }}">
         <img src="{{ asset('images/logo.png') }}" alt="" onerror="this.remove()">
         <span><b>FIT<em>PASS</em></b><small>GYM</small></span>
     </a>
@@ -30,8 +23,8 @@
         <span class="avatar"><span class="material-symbols-outlined">person</span></span>
         <span><b>{{ auth()->user()->name }}</b><small>{{ auth()->user()->role }}</small></span>
     </span>
-    <a class="btn" href="{{ $backUrl }}">
-        <span class="material-symbols-outlined">arrow_back</span>{{ $backLabel }}
+    <a class="btn" href="{{ route('staff.dashboard') }}">
+        <span class="material-symbols-outlined">arrow_back</span>Staff portal
     </a>
 </header>
 

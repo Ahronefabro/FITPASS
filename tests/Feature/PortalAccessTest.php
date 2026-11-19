@@ -59,48 +59,21 @@ class PortalAccessTest extends TestCase
     public static function landingRoles(): array
     {
         return [
-            // The scanner is the front page for everyone who may use it.
-            'an owner goes to the scanner' => ['Owner', 'staff.scanner'],
-            'staff go to the scanner' => ['Staff', 'staff.scanner'],
+            'an owner goes to the owner portal' => ['Owner', 'overview'],
+            'staff go to the staff portal' => ['Staff', 'staff.dashboard'],
         ];
     }
 
     /**
      * @dataProvider landingRoles
      */
-    public function test_a_role_lands_on_its_landing_page(string $role, string $home): void
+    public function test_a_role_lands_on_its_own_portal(string $role, string $home): void
     {
         $this->account($role);
 
         $this->signIn()->assertRedirect(route($home));
 
         $this->assertAuthenticated();
-    }
-
-    public function test_the_front_page_is_the_scanner_for_staff_and_owner(): void
-    {
-        foreach (['Staff' => 'desk', 'Owner' => 'boss'] as $role => $username) {
-            $this->actingAs($this->account($role, $username));
-
-            $this->get('/')->assertRedirect(route('staff.scanner'));
-            $this->get(route('staff.scanner'))->assertOk();
-        }
-    }
-
-    public function test_signing_in_from_the_front_page_comes_back_to_it(): void
-    {
-        $this->account('Staff');
-
-        $this->get('/')->assertRedirect(route('login'));
-        $this->signIn()->assertRedirect(url('/'));
-    }
-
-    public function test_the_scanner_leads_back_to_the_viewers_own_portal(): void
-    {
-        $this->actingAs($this->account('Owner', 'boss'))
-            ->get(route('staff.scanner'))
-            ->assertSee(route('overview'), false)
-            ->assertSee('Owner portal');
     }
 
     public function test_a_role_that_belongs_to_no_portal_is_refused(): void
@@ -240,18 +213,18 @@ class PortalAccessTest extends TestCase
         // A front-desk bookmark of an owner page.
         $this->get(route('analytics'))->assertRedirect(route('login'));
 
-        $this->signIn()->assertRedirect(route('staff.scanner'));
+        $this->signIn()->assertRedirect(route('staff.dashboard'));
     }
 
-    public function test_an_open_session_is_sent_to_the_scanner(): void
+    public function test_an_open_session_is_sent_to_its_own_portal_home(): void
     {
         $this->actingAs($this->account('Staff'))
             ->get(route('login'))
-            ->assertRedirect(route('staff.scanner'));
+            ->assertRedirect(route('staff.dashboard'));
 
         $this->actingAs($this->account('Owner', 'boss'))
             ->get(route('login'))
-            ->assertRedirect(route('staff.scanner'));
+            ->assertRedirect(route('overview'));
     }
 
     // -----------------------------------------------------------------
@@ -326,7 +299,7 @@ class PortalAccessTest extends TestCase
         $row = $this->directoryRow($this->account('Staff', 'frontdesk'), 'Inactive');
         $row->update(['status' => 'Active']);
 
-        $this->signIn('frontdesk')->assertRedirect(route('staff.scanner'));
+        $this->signIn('frontdesk')->assertRedirect(route('staff.dashboard'));
 
         $this->assertAuthenticated();
     }
@@ -348,6 +321,6 @@ class PortalAccessTest extends TestCase
     {
         $this->directoryRow($this->account('Owner', 'admin'), 'Inactive');
 
-        $this->signIn('admin')->assertRedirect(route('staff.scanner'));
+        $this->signIn('admin')->assertRedirect(route('overview'));
     }
 }

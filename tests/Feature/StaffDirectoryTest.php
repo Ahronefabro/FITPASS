@@ -53,7 +53,7 @@ class StaffDirectoryTest extends TestCase
         $this->assertSame('juan', $row->user->username);
         $this->assertSame('Staff', $row->user->role);
 
-        $this->signIn('juan')->assertRedirect(route('staff.scanner'));
+        $this->signIn('juan')->assertRedirect(route('staff.dashboard'));
     }
 
     public function test_a_username_or_email_already_taken_is_refused(): void
@@ -75,7 +75,7 @@ class StaffDirectoryTest extends TestCase
         $this->patch(route('staff.update', $first), ['status' => 'Inactive']);
 
         $this->signIn('juan')->assertSessionHasErrors('username');
-        $this->signIn('juan2')->assertRedirect(route('staff.scanner'));
+        $this->signIn('juan2')->assertRedirect(route('staff.dashboard'));
     }
 
     public function test_staff_is_the_only_role(): void
