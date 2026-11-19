@@ -20,12 +20,12 @@ final class Portal
     public const STAFF = 'staff';
 
     /**
-     * Roles listed under more than one portal, like Owner and Admin, sign in to
-     * the first one here and may still open the others.
+     * Roles listed under more than one portal, like Owner, sign in to the
+     * first one here and may still open the others.
      */
     public const ROLES = [
-        self::OWNER => ['Owner', 'Admin'],
-        self::STAFF => ['Staff', 'Admin', 'Owner', 'Front Desk', 'Trainers'],
+        self::OWNER => ['Owner'],
+        self::STAFF => ['Staff', 'Owner'],
     ];
 
     /** @return list<string> */

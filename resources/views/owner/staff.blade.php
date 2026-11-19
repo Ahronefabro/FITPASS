@@ -8,9 +8,6 @@
     @include('partials.cards')
 
     <div class="toolbar">
-        @foreach (['All', ...$roles] as $option)
-            <a href="{{ route('staff.index', ['filter' => $option]) }}" @class(['chip', 'active' => $filter === $option])>{{ $option }}</a>
-        @endforeach
         <span class="spacer"></span>
         <button class="btn primary" data-open="add-staff">+ Add Staff</button>
     </div>
@@ -50,24 +47,11 @@
                                     </form>
                                 </div>
                             </details>
-
-                            {{-- Menu button: role --}}
-                            <details class="menu">
-                                <summary title="Change role"><span class="material-symbols-outlined">menu</span></summary>
-                                <div class="menu-list">
-                                    <form method="POST" action="{{ route('staff.update', $person) }}">
-                                        @csrf @method('PATCH')
-                                        @foreach ($roles as $role)
-                                            <button name="role" value="{{ $role }}" @class(['current' => $person->role === $role])>{{ $role }}</button>
-                                        @endforeach
-                                    </form>
-                                </div>
-                            </details>
                         @endunless
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="7">No staff in this group.</td></tr>
+                    <tr><td colspan="7">No staff yet.</td></tr>
                 @endforelse
             </table>
         </div>

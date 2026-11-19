@@ -33,7 +33,6 @@ class StaffDirectoryTest extends TestCase
             'username' => 'juan',
             'email' => 'juan@fitpass.test',
             'password' => 'secret123',
-            'role' => 'Front Desk',
             'shift_start' => '06:00',
             'status' => 'Active',
         ]);
@@ -52,7 +51,7 @@ class StaffDirectoryTest extends TestCase
 
         $row = Staff::sole();
         $this->assertSame('juan', $row->user->username);
-        $this->assertSame('Front Desk', $row->user->role);
+        $this->assertSame('Staff', $row->user->role);
 
         $this->signIn('juan')->assertRedirect(route('staff.dashboard'));
     }
@@ -79,14 +78,29 @@ class StaffDirectoryTest extends TestCase
         $this->signIn('juan2')->assertRedirect(route('staff.dashboard'));
     }
 
-    public function test_a_role_change_reaches_the_login(): void
+    public function test_staff_is_the_only_role(): void
     {
-        $this->add();
+        $this->add(['role' => 'Front Desk'])->assertSessionHasErrors('role');
+        $this->add()->assertSessionHasNoErrors();
 
-        $this->patch(route('staff.update', Staff::sole()), ['role' => 'Admin']);
+        $this->patch(route('staff.update', Staff::sole()), ['role' => 'Admin'])->assertSessionHasErrors('role');
 
-        $this->assertSame('Admin', User::where('username', 'juan')->value('role'));
-        $this->signIn('juan')->assertRedirect(route('overview'));
+        $this->assertSame('Staff', User::where('username', 'juan')->value('role'));
+        $this->get(route('staff.index'))->assertDontSee('Front Desk')->assertDontSee('Trainers');
+    }
+
+    public function test_front_desk_trainers_and_admins_become_staff(): void
+    {
+        foreach (['Front Desk' => 'desk', 'Trainers' => 'coach', 'Admin' => 'admin'] as $role => $username) {
+            $user = User::factory()->create(['username' => $username, 'role' => $role]);
+            $user->staff()->create(['name' => $username, 'role' => $role, 'shift_start' => '06:00', 'status' => 'Active']);
+        }
+
+        (require database_path('migrations/2026_11_19_000001_make_every_staff_role_staff.php'))->up();
+
+        $this->assertSame(['Staff'], Staff::distinct()->pluck('role')->all());
+        $this->assertSame(['Owner', 'Staff'], User::distinct()->orderBy('role')->pluck('role')->all());
+        $this->assertSame('Owner', $this->owner->fresh()->role);
     }
 
     public function test_deleting_a_row_deletes_its_login(): void
@@ -102,10 +116,10 @@ class StaffDirectoryTest extends TestCase
     public function test_the_owners_own_login_cannot_be_changed_from_the_directory(): void
     {
         $row = $this->owner->staff()->create([
-            'name' => $this->owner->name, 'role' => 'Admin', 'shift_start' => '06:00', 'status' => 'Active',
+            'name' => $this->owner->name, 'role' => 'Staff', 'shift_start' => '06:00', 'status' => 'Active',
         ]);
 
-        $this->actingAs($this->owner)->patch(route('staff.update', $row), ['role' => 'Staff'])->assertForbidden();
+        $this->actingAs($this->owner)->patch(route('staff.update', $row), ['status' => 'Inactive'])->assertForbidden();
         $this->delete(route('staff.destroy', $row))->assertForbidden();
 
         $this->assertSame('Owner', $this->owner->fresh()->role);

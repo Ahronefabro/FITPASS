@@ -12,7 +12,7 @@ use Illuminate\Support\Carbon;
 class Staff extends Model
 {
     /** The same names the sign-in uses, so a role can be copied straight to the login. */
-    public const ROLES = ['Staff', 'Front Desk', 'Trainers', 'Admin'];
+    public const ROLES = ['Staff'];
 
     /** Role given to new accounts, since the Add Staff form no longer asks for one. */
     public const DEFAULT_ROLE = 'Staff';

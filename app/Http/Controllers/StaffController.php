@@ -17,17 +17,12 @@ use Illuminate\Validation\Rules\Password;
  */
 class StaffController extends Controller
 {
-    public function index(Request $request)
+    public function index()
     {
-        $filter = $request->query('filter', 'All');
-
         return view('owner.staff', [
-            'filter' => $filter,
             'staff' => Staff::query()
                 ->with('user:id,username')
-                ->when(in_array($filter, Staff::ROLES, true), fn ($q) => $q->where('role', $filter))
                 ->orderBy('name')->get(),
-            'roles' => Staff::ROLES,
             'statuses' => Staff::STATUSES,
             'cards' => [
                 ['Total Staff', Staff::count(), Staff::where('created_at', '>=', now()->startOfMonth())->count().' added this month'],

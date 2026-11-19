@@ -60,10 +60,7 @@ class PortalAccessTest extends TestCase
     {
         return [
             'an owner goes to the owner portal' => ['Owner', 'overview'],
-            'an admin goes to the owner portal' => ['Admin', 'overview'],
             'staff go to the staff portal' => ['Staff', 'staff.dashboard'],
-            'front desk go to the staff portal' => ['Front Desk', 'staff.dashboard'],
-            'trainers go to the staff portal' => ['Trainers', 'staff.dashboard'],
         ];
     }
 
@@ -144,7 +141,7 @@ class PortalAccessTest extends TestCase
 
         $this->post(route('staff.store'), [
             'name' => 'Sneaky Hire',
-            'role' => 'Admin',
+            'role' => 'Staff',
             'shift_start' => '06:00',
             'status' => 'Active',
         ])->assertRedirect(route('staff.dashboard'));
