@@ -6,6 +6,7 @@ import '../../services/api.dart';
 import '../../services/notifications.dart';
 import '../../widgets/member_avatar.dart';
 import '../auth/log_in.dart';
+import '../helpsupport/help_support_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Member member;
@@ -162,7 +163,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
     if (photo == null) return; // Cancelled.
 
-    await _updatePhoto(() => Api.uploadPhoto(photo!), 'Profile picture updated.');
+    await _updatePhoto(
+        () => Api.uploadPhoto(photo!), 'Profile picture updated.');
   }
 
   Future<void> _removePhoto() =>
@@ -516,7 +518,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             label: 'Help & Support',
             trailing:
                 const Icon(Icons.help_outline, color: Colors.white54, size: 18),
-            onTap: () {},
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HelpSupportScreen()),
+            ),
           ),
           _buildDivider(),
           _buildRow(
