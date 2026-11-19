@@ -19,9 +19,13 @@ void main() {
     int? daysLeft = 20,
     bool notifications = true,
     int? paymentId,
+    int? joinedDaysAgo = 60,
   }) {
     final today = DateTime.now();
     return Member(
+      joinedAt: joinedDaysAgo == null
+          ? null
+          : DateTime(today.year, today.month, today.day - joinedDaysAgo),
       id: 8,
       name: 'Ana Reyes',
       email: 'ana@example.com',
@@ -98,6 +102,45 @@ void main() {
     test('does not show for a member who was never pending here', () async {
       await Notifications.onMember(member());
       await Notifications.onMember(member());
+
+      expect(shown, isEmpty);
+    });
+  });
+
+  group('welcome', () {
+    const pendingWelcome =
+        'Your account is all set. Pay at the front desk to activate your membership and unlock your QR code.';
+    const activeWelcome =
+        "You're in! Show your QR code at the gate and let's get moving.";
+
+    test('greets a new sign-up still waiting for its payment', () async {
+      await Notifications.welcome(
+          member(status: 'Pending', daysLeft: null, joinedDaysAgo: null));
+
+      expect(shown, [pendingWelcome]);
+    });
+
+    test('greets a member who joined this week', () async {
+      await Notifications.welcome(member(joinedDaysAgo: 2));
+
+      expect(shown, [activeWelcome]);
+    });
+
+    test('greets only once on this phone', () async {
+      await Notifications.welcome(member(joinedDaysAgo: 0));
+      await Notifications.welcome(member(joinedDaysAgo: 0));
+
+      expect(shown, [activeWelcome]);
+    });
+
+    test('does not greet a member who has been around a while', () async {
+      await Notifications.welcome(member(joinedDaysAgo: 60));
+
+      expect(shown, isEmpty);
+    });
+
+    test('stays quiet when notifications are off', () async {
+      await Notifications.welcome(member(joinedDaysAgo: 0, notifications: false));
 
       expect(shown, isEmpty);
     });

@@ -5,8 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/member.dart';
 import 'api.dart';
 
-/// Phone notifications for what a member wants to know: their sign-up was
-/// approved, staff recorded a payment, and their membership is about to end.
+/// Phone notifications for what a member wants to know: a welcome on their
+/// first login, their sign-up was approved, staff recorded a payment, and
+/// their membership is about to end.
 ///
 /// There is no push server. The app already asks the backend for news while
 /// it is open, and these compare each answer with what this phone saw last
@@ -25,6 +26,10 @@ class Notifications {
   static const _approvedId = 1;
   static const _expiringId = 2;
   static const _paymentId = 3;
+  static const _welcomeId = 4;
+
+  /// How long after joining an account still counts as new, for the welcome.
+  static const newAccountDays = 7;
 
   /// Replaces the real notification in tests.
   @visibleForTesting
@@ -50,6 +55,32 @@ class Notifications {
     } catch (_) {
       // No notifications on this device; the app works the same without them.
     }
+  }
+
+  /// Call right after the member logs in. A new account (still waiting for
+  /// its first payment, or joined in the last week) is welcomed once on this
+  /// phone. Members who have been around a while are not greeted as if new.
+  static Future<void> welcome(Member member) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'notify_welcomed_${member.id}';
+    if (prefs.getBool(key) == true) return;
+
+    final joined = member.joinedAt;
+    final isNew = member.isPending ||
+        (joined != null &&
+            DateTime.now().difference(joined).inDays <= newAccountDays);
+    if (!isNew) return;
+
+    await prefs.setBool(key, true);
+    final firstName = member.name.trim().split(' ').first;
+    await _show(
+      member,
+      _welcomeId,
+      'Welcome to FitPass, $firstName! 💪',
+      member.isPending
+          ? 'Your account is all set. Pay at the front desk to activate your membership and unlock your QR code.'
+          : "You're in! Show your QR code at the gate and let's get moving.",
+    );
   }
 
   /// Call with every member the server sends.
@@ -140,7 +171,7 @@ class Notifications {
             'fitpass_membership',
             'Membership',
             channelDescription:
-                'Payments received and membership ending soon.',
+                'Welcome, payments received and membership ending soon.',
             importance: Importance.high,
             priority: Priority.high,
           ),

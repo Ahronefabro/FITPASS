@@ -3,6 +3,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/api.dart';
+import '../../services/notifications.dart';
 import 'sign_up.dart';
 import '../dashboard/dashboard.dart';
 
@@ -39,6 +40,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       final member = await Api.login(email, password);
+      // Not awaited: the dashboard opens while the welcome is on its way.
+      Notifications.welcome(member);
 
       if (!mounted) return;
       Navigator.pushReplacement(
