@@ -447,6 +447,10 @@ td select { padding: 6px 10px; background: #1E1E1E; border: 1px solid var(--line
 .scanner-bar .brand small { font-size: 10px; letter-spacing: 3px; }
 .scanner-bar .btn { display: inline-flex; align-items: center; gap: 6px; }
 .scanner-bar .btn .material-symbols-outlined { font-size: 18px; }
+/* The sign-in, for visitors: a round profile icon, big enough to tap. */
+.scanner-bar .profile-btn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 50%; background: #444; color: #fff; border: 2px solid transparent; transition: border-color var(--ease), color var(--ease); }
+.scanner-bar .profile-btn .material-symbols-outlined { font-size: 24px; }
+.scanner-bar .profile-btn:hover, .scanner-bar .profile-btn:focus-visible { border-color: var(--green); color: var(--green); }
 .scanner-page .scanner { height: min(60vh, 520px); }
 @media (max-width: 640px) {
     .scanner-bar { gap: 10px; padding: 0 16px; }
