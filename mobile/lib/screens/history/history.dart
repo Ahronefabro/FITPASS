@@ -57,6 +57,9 @@ class _HistoryTabState extends State<HistoryTab> {
   String? _errorMessage;
   List<HistoryEntry> _entries = [];
 
+  /// Ids of visit cards that are currently expanded.
+  final Set<String> _expandedIds = {};
+
   static const _accentGreen = Color(0xFF3ECF4A);
   static const _warningAmber = Color(0xFFE0A22B);
   static const _cardColor = Color(0xFF1C1C1C);
@@ -185,6 +188,7 @@ class _HistoryTabState extends State<HistoryTab> {
       if (!mounted) return;
       setState(() {
         _entries = entries;
+        _expandedIds.clear();
         _isLoading = false;
       });
     } catch (e) {
@@ -421,12 +425,19 @@ class _HistoryTabState extends State<HistoryTab> {
     );
   }
 
-  // ---- Individual log card ----
+  // ---- Individual log card (tap to expand) ----
+  void _toggleEntry(String id) {
+    setState(() {
+      if (!_expandedIds.remove(id)) _expandedIds.add(id);
+    });
+  }
+
   Widget _buildEntryCard(HistoryEntry entry) {
     final isActive = entry.isActive;
+    final isExpanded = _expandedIds.contains(entry.id);
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(12),
@@ -434,110 +445,134 @@ class _HistoryTabState extends State<HistoryTab> {
             ? Border.all(color: _warningAmber.withValues(alpha: 0.4))
             : null,
       ),
-      child: Row(
-        children: [
-          Expanded(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => _toggleEntry(entry.id),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Always visible: date, duration, and the arrow.
                 Row(
                   children: [
-                    Text(
-                      _formatDate(entry.timeIn),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                    if (isActive) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: _warningAmber.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'ACTIVE',
-                          style: TextStyle(
-                            color: _warningAmber,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _formatDate(entry.timeIn),
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
-                        ),
+                          if (isActive) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: _warningAmber.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text(
+                                'ACTIVE',
+                                style: TextStyle(
+                                  color: _warningAmber,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Text(
-                      'Time in',
-                      style: TextStyle(color: Colors.white54, fontSize: 13),
                     ),
-                    const SizedBox(width: 8),
                     Text(
-                      _formatTime(entry.timeIn),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Text(
-                      'Time out',
-                      style: TextStyle(color: Colors.white54, fontSize: 13),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      entry.timeOut != null
-                          ? _formatTime(entry.timeOut!)
-                          : 'Not yet',
+                      entry.duration != null
+                          ? _formatDuration(entry.duration!)
+                          : 'In progress',
                       style: TextStyle(
                         color: isActive ? _warningAmber : Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    const SizedBox(width: 6),
+                    AnimatedRotation(
+                      turns: isExpanded ? 0.25 : 0, // right arrow -> down arrow
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(Icons.chevron_right,
+                          color: Colors.white38),
+                    ),
                   ],
+                ),
+
+                // Revealed on tap: time in / time out.
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  alignment: Alignment.topCenter,
+                  child: isExpanded
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Column(
+                            children: [
+                              const Divider(color: Colors.white12, height: 1),
+                              const SizedBox(height: 12),
+                              _timeRow(
+                                Icons.login_rounded,
+                                'Time in',
+                                _formatTime(entry.timeIn),
+                                Colors.white,
+                              ),
+                              const SizedBox(height: 8),
+                              _timeRow(
+                                Icons.logout_rounded,
+                                'Time out',
+                                entry.timeOut != null
+                                    ? _formatTime(entry.timeOut!)
+                                    : 'Not yet',
+                                isActive ? _warningAmber : Colors.white,
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox(width: double.infinity),
                 ),
               ],
             ),
           ),
-          if (entry.duration != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Text(
-                    'Duration',
-                    style: TextStyle(color: Colors.white54, fontSize: 13),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatDuration(entry.duration!),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          const Icon(Icons.chevron_right, color: Colors.white38),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _timeRow(IconData icon, String label, String value, Color valueColor) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white38, size: 16),
+        const SizedBox(width: 8),
+        Text(label,
+            style: const TextStyle(color: Colors.white54, fontSize: 13)),
+        const Spacer(),
+        Text(
+          value,
+          style: TextStyle(
+            color: valueColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
