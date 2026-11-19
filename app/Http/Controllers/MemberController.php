@@ -13,18 +13,20 @@ class MemberController extends Controller
     public function index(Request $request)
     {
         $filter = $request->query('filter', 'All');
+        $view = $request->query('view') === 'grid' ? 'grid' : 'table';
 
         $members = Member::query()
             ->when(in_array($filter, Plan::names(), true), fn ($q) => $q->where('plan', $filter))
             ->when($filter === 'Expiring soon', fn ($q) => $q->expiringSoon())
             ->orderBy('name')
-            ->simplePaginate(50)
+            // Ten a page, like every other list.
+            ->paginate(10)
             ->withQueryString();
 
         return view('owner.members', [
             'cards' => $this->summaryCards(),
             'filter' => $filter,
-            'view' => $request->query('view') === 'grid' ? 'grid' : 'table',
+            'view' => $view,
             'members' => $members,
             'plans' => Plan::names(),
             // The owner edits plans and prices on this page.

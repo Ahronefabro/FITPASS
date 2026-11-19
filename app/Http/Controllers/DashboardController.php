@@ -264,7 +264,7 @@ class DashboardController extends Controller
     {
         return view('owner.audit', [
             'tab' => $request->query('tab') === 'reports' ? 'reports' : 'logs',
-            'logs' => AuditLog::latest()->simplePaginate(20),
+            'logs' => AuditLog::latest()->simplePaginate(10),
         ]);
     }
 

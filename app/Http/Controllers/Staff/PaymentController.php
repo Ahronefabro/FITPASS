@@ -21,7 +21,9 @@ class PaymentController extends Controller
         $payments = Payment::query()
             ->when($filter !== 'All', fn ($query) => $query->where('kind', $filter))
             ->latest('paid_on')->latest('id')
-            ->get();
+            // Every payment ever taken: page it here rather than send them all.
+            ->paginate(10)
+            ->withQueryString();
 
         return view('staff.payments', [
             'filter' => $filter,

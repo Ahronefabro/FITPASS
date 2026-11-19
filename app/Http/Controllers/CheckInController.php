@@ -23,7 +23,7 @@ class CheckInController extends Controller
                 ->when($filter === 'QR-code', fn ($q) => $q->where('method', 'QR Code'))
                 ->when($filter === 'Manual', fn ($q) => $q->where('method', 'Manual'))
                 ->when($filter === 'Currently In', fn ($q) => $q->whereNull('time_out'))
-                ->latest('time_in')->get(),
+                ->latest('time_in')->paginate(10)->withQueryString(),
             'members' => Member::orderBy('name')->pluck('name', 'id'),
             'cards' => [
                 ['Check-ins Today', $today, $change === null ? 'No check-ins yesterday' : ($change >= 0 ? '↑ ' : '↓ ').abs($change).'% vs yesterday', $change < 0],

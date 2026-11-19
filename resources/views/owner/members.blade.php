@@ -50,13 +50,7 @@
             </div>
         @endif
 
-        @if ($members->hasPages())
-            <div class="toolbar">
-                @if ($members->previousPageUrl()) <a class="chip" href="{{ $members->previousPageUrl() }}">← Previous</a> @endif
-                <span class="spacer"></span>
-                @if ($members->nextPageUrl()) <a class="chip" href="{{ $members->nextPageUrl() }}">Next →</a> @endif
-            </div>
-        @endif
+        @include('partials.pager', ['paginator' => $members])
     </section>
 
     {{-- What each plan costs. New sign-ups, at the desk and in the app, are charged these. --}}

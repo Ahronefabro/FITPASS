@@ -34,8 +34,8 @@ class MemberController extends Controller
             $filter = 'All'; // unknown value in the URL
         }
 
-        // Grid uses 12 so the last row of tiles is not left half empty
-        $members = $query->paginate($view === 'grid' ? 12 : 10)->withQueryString();
+        // Ten a page in both views, like every other list.
+        $members = $query->paginate(10)->withQueryString();
 
         // Deleted the last row of the last page, or a bad ?page=99
         if ($members->currentPage() > $members->lastPage()) {
