@@ -1,20 +1,37 @@
 <?php
 
-namespace App\Http\Controllers\Staff;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Auth\Portal;
 use App\Http\Controllers\Staff\Concerns\RecordsAttendance;
 use App\Models\Member;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
+/**
+ * The member QR scanner. It lives on the front page only, open without signing
+ * in, so the gate tablet just loads fitpass.site. Each scan lands on the same
+ * check-ins and audit log the staff and owner portals read.
+ */
 class ScannerController extends Controller
 {
     use RecordsAttendance;
 
-    public function index()
+    public function index(): View
     {
-        return view('staff.scanner');
+        $portal = Portal::forRole(auth()->user()?->role);
+
+        return view('scanner', [
+            // Signed in: back to their own portal. Otherwise: the sign-in.
+            'backUrl' => $portal ? route(Portal::homeRoute($portal)) : route('login'),
+            'backLabel' => match ($portal) {
+                Portal::OWNER => 'Owner portal',
+                Portal::STAFF => 'Staff portal',
+                default => 'Staff / Owner login',
+            },
+            'backIcon' => $portal ? 'arrow_back' : 'login',
+        ]);
     }
 
     /**

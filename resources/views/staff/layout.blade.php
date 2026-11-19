@@ -1,6 +1,5 @@
 @php
     $nav = [
-        ['staff.scanner', 'qr_code_scanner', 'Scanner'],
         ['staff.dashboard', 'dashboard_customize', 'Dashboard'],
         ['staff.checkins', 'login', 'Attendance'],
         ['staff.payments', 'payments', 'Payments'],
