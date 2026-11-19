@@ -458,3 +458,14 @@ td select { padding: 6px 10px; background: #1E1E1E; border: 1px solid var(--line
     .scanner-bar .brand { margin-right: auto; }
     .scanner-page .scanner { height: 340px; }
 }
+
+/* Numbered pagination (partials/pager): "Showing 11–20 of 57   ‹ 1 2 3 … 6 ›". */
+.pager { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.pager__info { font-size: 14px; color: #8b93a1; }
+.pager__nav { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.pager__btn { display: inline-flex; align-items: center; justify-content: center; min-width: 42px; height: 42px; padding: 0 12px; border-radius: 10px; background: #1a1d24; border: 1px solid #2f343d; color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; transition: background var(--ease), border-color var(--ease), color var(--ease); }
+a.pager__btn:hover { border-color: #22c55e; color: #22c55e; }
+.pager__btn.active { background: #22c55e; border-color: #22c55e; color: #05260f; }
+.pager__btn.disabled { opacity: .35; cursor: not-allowed; }
+.pager__gap { color: #8b93a1; padding: 0 2px; }
+@media (max-width: 600px) { .pager { justify-content: center; } }

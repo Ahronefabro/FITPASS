@@ -95,6 +95,73 @@ class StaffPortalTest extends TestCase
         }
     }
 
+    public function test_payments_are_paged_ten_at_a_time_and_keep_the_filter(): void
+    {
+        foreach (range(1, 12) as $i) {
+            Payment::create(['name' => "Guest {$i}", 'paid_on' => today()->subDays($i), 'kind' => 'Walk-in', 'amount' => 80, 'method' => 'Cash']);
+        }
+        Payment::create(['name' => 'Monthly Payer', 'paid_on' => today()->subDays(20), 'kind' => 'Monthly', 'amount' => 1000, 'method' => 'Gcash']);
+
+        $this->actingAs($this->staff());
+
+        // Newest first: Guest 1 to Guest 10 on the first page.
+        $this->get(route('staff.payments'))
+            ->assertOk()
+            ->assertSee('Showing 1–10 of 13')
+            ->assertSee('Guest 10')
+            ->assertDontSee('Guest 11');
+
+        $this->get(route('staff.payments', ['page' => 2]))
+            ->assertSee('Showing 11–13 of 13')
+            ->assertSee('Guest 11')
+            ->assertSee('Monthly Payer');
+
+        // The page links keep the filter.
+        $this->get(route('staff.payments', ['filter' => 'Walk-in']))
+            ->assertSee('Showing 1–10 of 12')
+            ->assertSee('filter=Walk-in&amp;page=2', false);
+
+        // One page needs no pager.
+        $this->get(route('staff.payments', ['filter' => 'Monthly']))->assertDontSee('Showing');
+    }
+
+    public function test_the_owners_attendance_is_paged_twenty_at_a_time(): void
+    {
+        foreach (range(1, 21) as $i) {
+            CheckIn::create(['guest_name' => "Walk-in {$i}", 'time_in' => today()->setTime(6, 0)->addMinutes($i), 'method' => 'Manual']);
+        }
+
+        $this->actingAs($this->owner());
+
+        $this->get(route('checkins.index'))->assertOk()
+            ->assertSee('Showing 1–20 of 21')
+            ->assertSee('Walk-in 21')->assertDontSee('Walk-in 1<', false);
+
+        $this->get(route('checkins.index', ['page' => 2]))->assertOk()
+            ->assertSee('Showing 21–21 of 21')->assertSee('Walk-in 1<', false);
+    }
+
+    public function test_the_owners_members_are_paged_and_keep_the_filter_and_view(): void
+    {
+        foreach (range(1, 13) as $i) {
+            $this->member(['name' => sprintf('Member %02d', $i)]);
+        }
+
+        $this->actingAs($this->owner());
+
+        // Ten a page in the table, by name.
+        $this->get(route('members.index'))->assertOk()
+            ->assertSee('Showing 1–10 of 13')
+            ->assertSee('Member 10')->assertDontSee('Member 11');
+        $this->get(route('members.index', ['page' => 2]))
+            ->assertSee('Showing 11–13 of 13')->assertSee('Member 13');
+
+        // Twelve in the grid, and the page links keep the filter and the view.
+        $this->get(route('members.index', ['filter' => 'Regular', 'view' => 'grid']))
+            ->assertSee('Showing 1–12 of 13')
+            ->assertSee('filter=Regular&amp;view=grid&amp;page=2', false);
+    }
+
     public function test_the_dashboard_accepts_each_chart_range(): void
     {
         $this->actingAs($this->staff());

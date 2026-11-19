@@ -42,6 +42,8 @@
                 @endforelse
             </table>
         </div>
+
+        @include('partials.pager', ['paginator' => $logs])
     </section>
 
     <dialog id="manual-entry">
