@@ -8,14 +8,13 @@ use App\Http\Controllers\MemberController;
 use App\Http\Controllers\MemberPasswordResetController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\PlanController;
+use App\Http\Controllers\ScannerController;
 use App\Http\Controllers\Staff\CheckInController as StaffCheckInController;
 use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
 use App\Http\Controllers\Staff\ManualTimeController;
 use App\Http\Controllers\Staff\MemberController as StaffMemberController;
 use App\Http\Controllers\Staff\NotificationController;
 use App\Http\Controllers\Staff\PaymentController;
-use App\Http\Controllers\Staff\ScannerController;
-use App\Http\Controllers\PublicScannerController;
 use App\Http\Controllers\StaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,14 +41,18 @@ Route::post('/member/reset-password', [MemberPasswordResetController::class, 'up
 // working for anyone who bookmarked it.
 Route::redirect('/staff/login', '/login');
 
+// The scanner used to sit inside the staff portal. Bookmarks of it, on a gate
+// tablet say, now open the front-page scanner.
+Route::redirect('/staff/scanner', '/');
+
 // ---------------------------------------------------------------------
 // The front page: the member QR scanner, open without signing in, so the gate
-// tablet only has to load fitpass.site. Scans go through the same code and the
-// same tables as the staff scanner, so they show up in both portals.
+// tablet only has to load fitpass.site. It is the only scanner; its scans land
+// on the same check-ins the staff and owner portals show.
 // ---------------------------------------------------------------------
 
-Route::get('/', [PublicScannerController::class, 'index'])->name('home');
-Route::post('/scan', [PublicScannerController::class, 'store'])
+Route::get('/', [ScannerController::class, 'index'])->name('home');
+Route::post('/scan', [ScannerController::class, 'store'])
     ->middleware('throttle:public-scanner')
     ->name('scan.record');
 
@@ -118,8 +121,5 @@ Route::prefix('staff')->name('staff.')->group(function () {
         Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications');
         Route::get('/notifications/count', [NotificationController::class, 'count'])->name('notifications.count');
         Route::post('/notifications/read', [NotificationController::class, 'markAllRead'])->name('notifications.read');
-
-        Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner');
-        Route::post('/scanner/record', [ScannerController::class, 'store'])->name('scanner.record');
     });
 });

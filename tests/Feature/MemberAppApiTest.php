@@ -194,7 +194,7 @@ class MemberAppApiTest extends TestCase
         $this->signUp();
 
         $this->actingAs(User::factory()->staff()->create())
-            ->postJson(route('staff.scanner.record'), ['code' => Member::pending()->sole()->qr_code])
+            ->postJson(route('scan.record'), ['code' => Member::pending()->sole()->qr_code])
             ->assertUnprocessable();
     }
 
@@ -286,7 +286,7 @@ class MemberAppApiTest extends TestCase
         $member->replacePhoto($this->picture());
 
         $this->actingAs(User::factory()->staff()->create())
-            ->postJson(route('staff.scanner.record'), ['code' => $member->qr_code])
+            ->postJson(route('scan.record'), ['code' => $member->qr_code])
             ->assertOk()->assertJsonPath('photo', $member->photo_url);
 
         $this->get(route('staff.members'))->assertSee($member->photo_url, false);

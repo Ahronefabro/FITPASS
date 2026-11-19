@@ -188,8 +188,8 @@ class PortalAccessTest extends TestCase
 
         $user->forceFill(['role' => 'Member'])->save();
 
-        // Not a redirect, which the scanner would read as a successful scan.
-        $this->postJson(route('staff.scanner.record'), ['code' => 'FP-0001'])
+        // Not a redirect, which a script reading json would take for an answer.
+        $this->getJson(route('staff.notifications.count'))
             ->assertStatus(403);
     }
 

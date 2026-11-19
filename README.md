@@ -112,7 +112,7 @@ The APK is saved to `mobile\build\app\outputs\flutter-apk\app-release.apk`. Each
 1. In the app, tap **Sign up** and create an account. The home screen shows **Waiting for payment**.
 2. In the web portal, log in as **staff**, open **Members**, and click **Confirm payment** on the new sign-up.
 3. In the app, log in and pull down on the home screen. Your QR code appears.
-4. In the web portal, open the staff **Scanner** at **http://localhost:8000/staff/scanner** and show the QR code to the webcam. The member is checked in, and the visit appears in the app's **History** tab.
+4. In the web portal, open the **Scanner** on the front page, **http://localhost:8000**, and show the QR code to the webcam. The member is checked in, and the visit appears in the app's **History** tab.
 
 The scanner camera only works on **localhost** or **https://**. Open the scanner on the computer running the server, not through an IP address like `192.168.x.x`.
 
@@ -130,7 +130,7 @@ The scanner camera only works on **localhost** or **https://**. Open the scanner
 | Login says wrong username or password | Run `php artisan migrate --seed` to create the accounts |
 | App says **Could not reach the FitPass server** | Make sure `php artisan serve --host=0.0.0.0 --port=8000` is running. On a phone, check that you used your own IP and are on the same Wi-Fi |
 | Phone still cannot connect | Allow the server through Windows Firewall. In PowerShell **as Administrator**, run `New-NetFirewallRule -DisplayName "FitPass 8000" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow -Profile Private` |
-| Scanner says the camera only works over https or localhost | Open the scanner at `http://localhost:8000/staff/scanner` |
+| Scanner says the camera only works over https or localhost | Open the scanner at `http://localhost:8000` |
 | APK build fails asking for an NDK | Install it from Android Studio: **SDK Manager**, **SDK Tools**, **NDK (Side by side)** |
 
 ## Running the tests

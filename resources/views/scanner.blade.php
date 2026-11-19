@@ -1,14 +1,6 @@
-{{-- A page of its own, outside the staff shell: no sidebar, no menus, just the
-     camera and the member card, so it can stay open on the gate tablet. Scans
-     still go to staff.scanner.record, the same signed-in staff session.
-     The front page shows this same screen to anyone, and passes its own
-     record url and way out. --}}
-@php
-    $recordUrl ??= route('staff.scanner.record');
-    $backUrl ??= route('staff.dashboard');
-    $backLabel ??= 'Staff portal';
-    $backIcon ??= 'arrow_back';
-@endphp
+{{-- The front page: no sidebar, no menus, just the camera and the member
+     card, so it can stay open on the gate tablet. Open without signing in;
+     each scan is posted to scan.record. --}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -93,7 +85,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <script>
-    const record = @json($recordUrl);
+    const record = @json(route('scan.record'));
     const token = @json(csrf_token());
 
     const el = id => document.getElementById(id);
