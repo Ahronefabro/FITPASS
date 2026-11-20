@@ -35,27 +35,41 @@ class PasswordResetTest extends TestCase
         $this->get(route('password.request'))->assertOk()->assertSee('FORGOT PASSWORD');
     }
 
-    public function test_an_account_can_change_its_own_email_for_reset_links(): void
+    public function test_account_details_change_username_and_email_together(): void
     {
         $user = $this->account();
         User::factory()->create(['username' => 'other', 'email' => 'taken@example.com', 'role' => 'Staff']);
         $this->actingAs($user);
 
-        $this->get(route('account.edit'))->assertOk()->assertSee('Change email')->assertSee('desk@fitpass.test', false);
+        // One card holds both fields.
+        $this->get(route('account.edit'))->assertOk()
+            ->assertSee('Account details')
+            ->assertSee('value="desk"', false)
+            ->assertSee('value="desk@fitpass.test"', false)
+            ->assertDontSee('Change email');
 
-        // The current password is required, and another account's address is refused.
-        $this->patch(route('account.email'), ['email' => 'me@example.com', 'current_password' => 'wrong'])
-            ->assertSessionHasErrorsIn('email', 'current_password');
-        $this->patch(route('account.email'), ['email' => 'taken@example.com', 'current_password' => 'old-password'])
-            ->assertSessionHasErrorsIn('email', 'email');
-        $this->assertSame('desk@fitpass.test', $user->fresh()->email);
+        $details = fn (array $over) => $this->patch(route('account.details'), $over + [
+            'username' => 'desk', 'email' => 'desk@fitpass.test', 'current_password' => 'old-password',
+        ]);
 
-        $this->patch(route('account.email'), ['email' => ' Me@Example.com ', 'current_password' => 'old-password'])
-            ->assertSessionHasNoErrors();
-        $this->assertSame('me@example.com', $user->fresh()->email);
+        // The current password is required; another account's username or email is refused.
+        $details(['email' => 'me@example.com', 'current_password' => 'wrong'])->assertSessionHasErrorsIn('details', 'current_password');
+        $details(['email' => 'taken@example.com'])->assertSessionHasErrorsIn('details', 'email');
+        $details(['username' => 'other'])->assertSessionHasErrorsIn('details', 'username');
+        $this->assertSame(['desk', 'desk@fitpass.test'], [$user->fresh()->username, $user->fresh()->email]);
+
+        // Saving with nothing changed changes nothing.
+        $details([])->assertSessionHas('status', 'Nothing to change.');
+
+        // Both at once, each recorded.
+        $details(['username' => 'frontdesk', 'email' => ' Me@Example.com '])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', 'Username and email updated.');
+        $this->assertSame(['frontdesk', 'me@example.com'], [$user->fresh()->username, $user->fresh()->email]);
+        $this->assertTrue(AuditLog::where('action', 'changed their username from desk to frontdesk')->exists());
         $this->assertTrue(AuditLog::where('action', 'changed their email from desk@fitpass.test to me@example.com')->exists());
 
-        // And "Forgot password?" now sends the link there.
+        // And "Forgot password?" now sends the link to the new address.
         auth()->logout();
         Notification::fake();
         $this->post(route('password.email'), ['email' => 'me@example.com']);

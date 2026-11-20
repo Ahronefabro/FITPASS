@@ -6,39 +6,27 @@
 <h1 class="page-title">ACCOUNT SETTINGS</h1>
 
 <div class="account-grid">
-    <form class="account-card" method="POST" action="{{ route('account.username') }}">
+    <form class="account-card" method="POST" action="{{ route('account.details') }}">
         @csrf @method('PATCH')
-        <h2>Change username</h2>
+        <h2>Account details</h2>
 
         <label>Username
-            <input type="text" name="username" value="{{ old('username', auth()->user()->username) }}" required>
+            <input type="text" name="username" value="{{ old('username', auth()->user()->username) }}" autocomplete="username" required>
         </label>
-        @error('username', 'username') <p class="field-error">{{ $message }}</p> @enderror
-
-        <label>Current password
-            @include('partials.password-input', ['name' => 'current_password', 'autocomplete' => 'current-password'])
-        </label>
-        @error('current_password', 'username') <p class="field-error">{{ $message }}</p> @enderror
-
-        <button class="btn-primary" type="submit">Save username</button>
-    </form>
-
-    <form class="account-card" method="POST" action="{{ route('account.email') }}">
-        @csrf @method('PATCH')
-        <h2>Change email</h2>
-        <p class="field-hint">"Forgot password?" sends the reset link to this address, so use one you can open.</p>
+        @error('username', 'details') <p class="field-error">{{ $message }}</p> @enderror
 
         <label>Email
             <input type="email" name="email" value="{{ old('email', auth()->user()->email) }}" autocomplete="email" required>
         </label>
-        @error('email', 'email') <p class="field-error">{{ $message }}</p> @enderror
+        <p class="field-hint">"Forgot password?" sends the reset link here, so use an address you can open.</p>
+        @error('email', 'details') <p class="field-error">{{ $message }}</p> @enderror
 
         <label>Current password
             @include('partials.password-input', ['name' => 'current_password', 'autocomplete' => 'current-password'])
         </label>
-        @error('current_password', 'email') <p class="field-error">{{ $message }}</p> @enderror
+        @error('current_password', 'details') <p class="field-error">{{ $message }}</p> @enderror
 
-        <button class="btn-primary" type="submit">Save email</button>
+        <button class="btn-primary" type="submit">Save details</button>
     </form>
 
     <form class="account-card" method="POST" action="{{ route('account.password') }}">
