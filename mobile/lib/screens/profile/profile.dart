@@ -47,9 +47,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _handleLogout(BuildContext context) {
+    // Taken from the screen, not the dialog: the dialog is gone by the time
+    // the login screen is shown.
+    final navigator = Navigator.of(context);
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: _cardColor,
         title: const Text('Log out', style: TextStyle(color: Colors.white)),
         content: const Text(
@@ -58,17 +61,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
+              // Only clears the saved login, so this returns at once.
               await Api.logout();
-              if (!context.mounted) return;
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              navigator.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
                 (route) => false,
               );
             },
