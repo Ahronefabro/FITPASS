@@ -7,7 +7,7 @@
     <!-- Cleartext lets the app reach `php artisan serve` over plain http while
          developing. Turn it off once the backend is served over https. -->
     <application
-        android:label="fitpass"
+        android:label="FitPass"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">
