@@ -35,6 +35,33 @@ class PasswordResetTest extends TestCase
         $this->get(route('password.request'))->assertOk()->assertSee('FORGOT PASSWORD');
     }
 
+    public function test_an_account_can_change_its_own_email_for_reset_links(): void
+    {
+        $user = $this->account();
+        User::factory()->create(['username' => 'other', 'email' => 'taken@example.com', 'role' => 'Staff']);
+        $this->actingAs($user);
+
+        $this->get(route('account.edit'))->assertOk()->assertSee('Change email')->assertSee('desk@fitpass.test', false);
+
+        // The current password is required, and another account's address is refused.
+        $this->patch(route('account.email'), ['email' => 'me@example.com', 'current_password' => 'wrong'])
+            ->assertSessionHasErrorsIn('email', 'current_password');
+        $this->patch(route('account.email'), ['email' => 'taken@example.com', 'current_password' => 'old-password'])
+            ->assertSessionHasErrorsIn('email', 'email');
+        $this->assertSame('desk@fitpass.test', $user->fresh()->email);
+
+        $this->patch(route('account.email'), ['email' => ' Me@Example.com ', 'current_password' => 'old-password'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('me@example.com', $user->fresh()->email);
+        $this->assertTrue(AuditLog::where('action', 'changed their email from desk@fitpass.test to me@example.com')->exists());
+
+        // And "Forgot password?" now sends the link there.
+        auth()->logout();
+        Notification::fake();
+        $this->post(route('password.email'), ['email' => 'me@example.com']);
+        Notification::assertSentTo($user, ResetPassword::class);
+    }
+
     public function test_a_reset_link_is_emailed_to_the_account(): void
     {
         Notification::fake();

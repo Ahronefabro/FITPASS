@@ -388,6 +388,7 @@ td select { padding: 6px 10px; background: #1E1E1E; border: 1px solid var(--line
 }
 .account-card input:focus { border-color: var(--green); }
 .field-error { color: var(--red); font-size: 13px; margin: -6px 0 0; }
+.field-hint { margin: -4px 0 0; color: var(--grey); font-size: 12px; line-height: 1.5; }
 
 /* Password boxes in the portals, with an eye button to show what was typed. */
 .pw-toggle { position: relative; display: block; margin-top: 6px; }

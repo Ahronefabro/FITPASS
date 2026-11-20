@@ -63,6 +63,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
     Route::patch('/account/username', [AccountController::class, 'updateUsername'])->name('account.username');
+    Route::patch('/account/email', [AccountController::class, 'updateEmail'])->name('account.email');
     Route::patch('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');
 });
 

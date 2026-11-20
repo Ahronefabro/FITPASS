@@ -36,6 +36,31 @@ class AccountController extends Controller
         return back()->with('status', 'Username updated.');
     }
 
+    /**
+     * Where "Forgot password?" sends the reset link. Accounts made from the
+     * starter data have made-up addresses, so this is how each person puts in
+     * one they can actually open.
+     */
+    public function updateEmail(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        $data = $request->validateWithBag('email', [
+            'email' => [
+                'required', 'string', 'email', 'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'current_password' => ['required', 'current_password'],
+        ]);
+
+        $old = $user->email;
+        $user->update(['email' => mb_strtolower(trim($data['email']))]);
+
+        AuditLog::record("changed their email from {$old} to {$user->email}");
+
+        return back()->with('status', 'Email updated. Password reset links now go to '.$user->email.'.');
+    }
+
     public function updatePassword(Request $request): RedirectResponse
     {
         $data = $request->validateWithBag('password', [
