@@ -81,6 +81,8 @@
                                     @csrf @method('DELETE')
                                     <button class="btn small danger">Delete</button>
                                 </form>
+                            @else
+                                <button type="button" class="btn small" disabled style="opacity: 0.4; cursor: not-allowed;" title="Cannot delete: {{ $row->members_count }} member(s) on this plan">Delete</button>
                             @endif
                         </td>
                     </tr>
