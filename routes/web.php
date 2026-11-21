@@ -64,6 +64,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
     Route::patch('/account/details', [AccountController::class, 'updateDetails'])->name('account.details');
     Route::patch('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');
+
+    Route::patch('/check-ins/{checkIn}/checkout', [CheckInController::class, 'checkout'])->name('checkins.checkout');
 });
 
 // ---------------------------------------------------------------------
@@ -90,7 +92,6 @@ Route::middleware(['auth', 'portal:owner'])->group(function () {
     Route::get('/check-ins', [CheckInController::class, 'index'])->name('checkins.index');
     Route::post('/check-ins', [CheckInController::class, 'store'])->name('checkins.store');
     Route::get('/check-ins/export', [CheckInController::class, 'export'])->name('checkins.export');
-    Route::patch('/check-ins/{checkIn}/checkout', [CheckInController::class, 'checkout'])->name('checkins.checkout');
 });
 
 // ---------------------------------------------------------------------
