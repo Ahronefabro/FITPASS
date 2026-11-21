@@ -8,7 +8,6 @@ use App\Models\Member;
 use App\Models\Plan;
 use App\Models\StaffNotification;
 use App\Mail\WelcomeMail;
-use Illuminate\Contracts\Mail\Mailable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;

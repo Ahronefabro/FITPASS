@@ -15,10 +15,11 @@
 
         <div class="table-wrap">
             <table id="attendanceTable">
-                <tr><th>Name</th><th>Checked in</th><th>Checked out</th><th>Method</th><th>Status</th></tr>
+                <tr><th>Name</th><th>Type</th><th>Checked in</th><th>Checked out</th><th>Method</th><th>Status</th></tr>
                 @forelse ($rows as $visit)
                     <tr class="attendance-row">
                         <td><span class="who"><span class="avatar">{{ $visit->initials }}</span>{{ $visit->person_name }}</span></td>
+                        <td>{{ $visit->plan_label }}</td>
                         {{-- A visit left open overnight is closed out today, so its arrival needs the date. --}}
                         <td class="green">{{ $visit->time_in->format($visit->time_in->isToday() ? 'g:i A' : 'M j, g:i A') }}</td>
                         <td @class(['orange' => $visit->time_out])>{{ $visit->time_out?->format('g:i A') ?? '----' }}</td>
@@ -27,12 +28,16 @@
                             @if ($visit->time_out)
                                 <span class="badge grey">Checked Out</span>
                             @else
-                                <span class="badge green">Still In</span>
+                                <form class="inline" method="POST" action="{{ route('checkins.checkout', $visit) }}">
+                                    @csrf @method('PATCH')
+                                    <span class="badge green">In Gym</span>
+                                    <button class="btn btn--small" type="submit">Check out</button>
+                                </form>
                             @endif
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5">No logs found.</td></tr>
+                    <tr><td colspan="6">No logs found.</td></tr>
                 @endforelse
             </table>
         </div>

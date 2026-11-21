@@ -17,7 +17,7 @@
 
         <div class="table-wrap">
             <table>
-                <tr><th>Member</th><th>Title</th><th>Time in</th><th>Time out</th><th>Method</th><th>Status</th></tr>
+                <tr><th>Member</th><th>Type</th><th>Time in</th><th>Time out</th><th>Method</th><th>Status</th></tr>
                 @forelse ($logs as $log)
                     <tr>
                         <td><span class="who"><span class="avatar">{{ $log->initials }}</span>{{ $log->person_name }}</span></td>
@@ -29,11 +29,7 @@
                             @if ($log->time_out)
                                 <span class="badge grey">Checked Out</span>
                             @else
-                                <form class="inline" method="POST" action="{{ route('checkins.checkout', $log) }}">
-                                    @csrf @method('PATCH')
-                                    <span class="badge green">In Gym</span>
-                                    <button class="btn small">Check out</button>
-                                </form>
+                                <span class="badge green">In Gym</span>
                             @endif
                         </td>
                     </tr>
@@ -46,25 +42,4 @@
         @include('partials.pager', ['paginator' => $logs])
     </section>
 
-    <dialog id="manual-entry">
-        <h2>MANUAL ENTRY</h2>
-        <form method="POST" action="{{ route('checkins.store') }}">
-            @csrf
-            @if ($errors->any()) <p class="error">{{ $errors->first() }}</p> @endif
-
-            <label>Member
-                <select name="member_id" required>
-                    <option value="">Select a member</option>
-                    @foreach ($members as $id => $name)
-                        <option value="{{ $id }}">{{ $name }}</option>
-                    @endforeach
-                </select>
-            </label>
-
-            <div class="actions">
-                <button type="button" class="btn" data-close>Cancel</button>
-                <button class="btn primary">Check in</button>
-            </div>
-        </form>
-    </dialog>
 @endsection
