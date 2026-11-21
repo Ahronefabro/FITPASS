@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -168,13 +169,31 @@ class Api {
     return _member(body);
   }
 
+  /// Signs out on this phone at once; the server is told in the background.
+  ///
+  /// Waiting for the server made the button feel stuck on slow networks, and
+  /// the phone is signed out either way once the token is forgotten.
   static Future<void> logout() async {
+    final token = _token;
+    await _saveToken(null);
+    if (token != null) unawaited(_revokeToken(token));
+  }
+
+  /// Asks the server to cancel [token]. Failures are ignored.
+  ///
+  /// Not sent through [_receive]: a 401 there clears the saved login, which
+  /// could wipe a new login made while this request was still in flight.
+  static Future<void> _revokeToken(String token) async {
     try {
-      await _send('POST', '/logout');
-    } on ApiException {
-      // Signed out on this phone either way.
-    } finally {
-      await _saveToken(null);
+      await http.post(
+        Uri.parse('$baseUrl/api/logout'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(_timeout);
+    } catch (_) {
+      // Offline or already revoked; nothing left to do on the phone.
     }
   }
 

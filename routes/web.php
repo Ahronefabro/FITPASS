@@ -62,7 +62,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/account', [AccountController::class, 'edit'])->name('account.edit');
-    Route::patch('/account/username', [AccountController::class, 'updateUsername'])->name('account.username');
+    Route::patch('/account/details', [AccountController::class, 'updateDetails'])->name('account.details');
     Route::patch('/account/password', [AccountController::class, 'updatePassword'])->name('account.password');
 });
 

@@ -35,6 +35,47 @@ class PasswordResetTest extends TestCase
         $this->get(route('password.request'))->assertOk()->assertSee('FORGOT PASSWORD');
     }
 
+    public function test_account_details_change_username_and_email_together(): void
+    {
+        $user = $this->account();
+        User::factory()->create(['username' => 'other', 'email' => 'taken@example.com', 'role' => 'Staff']);
+        $this->actingAs($user);
+
+        // One card holds both fields.
+        $this->get(route('account.edit'))->assertOk()
+            ->assertSee('Account details')
+            ->assertSee('value="desk"', false)
+            ->assertSee('value="desk@fitpass.test"', false)
+            ->assertDontSee('Change email');
+
+        $details = fn (array $over) => $this->patch(route('account.details'), $over + [
+            'username' => 'desk', 'email' => 'desk@fitpass.test', 'current_password' => 'old-password',
+        ]);
+
+        // The current password is required; another account's username or email is refused.
+        $details(['email' => 'me@example.com', 'current_password' => 'wrong'])->assertSessionHasErrorsIn('details', 'current_password');
+        $details(['email' => 'taken@example.com'])->assertSessionHasErrorsIn('details', 'email');
+        $details(['username' => 'other'])->assertSessionHasErrorsIn('details', 'username');
+        $this->assertSame(['desk', 'desk@fitpass.test'], [$user->fresh()->username, $user->fresh()->email]);
+
+        // Saving with nothing changed changes nothing.
+        $details([])->assertSessionHas('status', 'Nothing to change.');
+
+        // Both at once, each recorded.
+        $details(['username' => 'frontdesk', 'email' => ' Me@Example.com '])
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status', 'Username and email updated.');
+        $this->assertSame(['frontdesk', 'me@example.com'], [$user->fresh()->username, $user->fresh()->email]);
+        $this->assertTrue(AuditLog::where('action', 'changed their username from desk to frontdesk')->exists());
+        $this->assertTrue(AuditLog::where('action', 'changed their email from desk@fitpass.test to me@example.com')->exists());
+
+        // And "Forgot password?" now sends the link to the new address.
+        auth()->logout();
+        Notification::fake();
+        $this->post(route('password.email'), ['email' => 'me@example.com']);
+        Notification::assertSentTo($user, ResetPassword::class);
+    }
+
     public function test_a_reset_link_is_emailed_to_the_account(): void
     {
         Notification::fake();

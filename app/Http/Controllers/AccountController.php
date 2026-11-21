@@ -16,24 +16,47 @@ class AccountController extends Controller
         return view('account.settings');
     }
 
-    public function updateUsername(Request $request): RedirectResponse
+    /**
+     * Username and email, saved together behind the current password. The
+     * email is where "Forgot password?" sends the reset link; accounts made
+     * from the starter data have made-up addresses, so this is where each
+     * person puts in one they can actually open.
+     */
+    public function updateDetails(Request $request): RedirectResponse
     {
         $user = $request->user();
 
-        $data = $request->validateWithBag('username', [
+        $data = $request->validateWithBag('details', [
             'username' => [
                 'required', 'string', 'min:3', 'max:50', 'alpha_dash',
                 Rule::unique('users', 'username')->ignore($user->id),
             ],
+            'email' => [
+                'required', 'string', 'email', 'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
             'current_password' => ['required', 'current_password'],
         ]);
 
-        $old = $user->username;
-        $user->update(['username' => $data['username']]);
+        $old = ['username' => $user->username, 'email' => $user->email];
+        $user->fill([
+            'username' => $data['username'],
+            'email' => mb_strtolower(trim($data['email'])),
+        ]);
 
-        AuditLog::record("changed their username from {$old} to {$user->username}");
+        if (! $user->isDirty()) {
+            return back()->with('status', 'Nothing to change.');
+        }
 
-        return back()->with('status', 'Username updated.');
+        // In the form's order, for the message below.
+        $changed = array_values(array_filter(['username', 'email'], fn ($field) => $user->isDirty($field)));
+        $user->save();
+
+        foreach ($changed as $field) {
+            AuditLog::record("changed their {$field} from {$old[$field]} to {$user->{$field}}");
+        }
+
+        return back()->with('status', ucfirst(implode(' and ', $changed)).' updated.');
     }
 
     public function updatePassword(Request $request): RedirectResponse
