@@ -63,27 +63,31 @@
             <table>
                 <tr><th>Plan</th><th>Price (₱)</th><th>Colour</th><th>Members</th><th></th></tr>
                 @foreach ($planRows as $row)
-                    <tr>
+                    <tr class="plan-form">
                         <td>{{ $row->name }}</td>
-                        <td colspan="2">
-                            <form method="POST" action="{{ route('plans.update', $row) }}" class="inline plan-form">
-                                @csrf @method('PATCH')
-                                <input type="number" name="price" min="0" step="0.01" value="{{ $row->price + 0 }}" required aria-label="{{ $row->name }} price">
-                                <input type="color" name="colour" value="{{ $row->colour }}" aria-label="{{ $row->name }} colour">
-                                <button class="btn small">Save</button>
-                            </form>
+                        <td>
+                            <input type="number" form="plan-form-{{ $row->id }}" name="price" min="0" step="0.01" value="{{ $row->price + 0 }}" required aria-label="{{ $row->name }} price">
+                        </td>
+                        <td>
+                            <input type="color" form="plan-form-{{ $row->id }}" name="colour" value="{{ $row->colour }}" aria-label="{{ $row->name }} colour">
                         </td>
                         <td>{{ $row->members_count }}</td>
                         <td class="right">
-                            {{-- Members keep the plan's name, so a plan in use cannot go. --}}
-                            @if ($row->members_count === 0)
-                                <form method="POST" action="{{ route('plans.destroy', $row) }}" data-confirm="Delete the {{ $row->name }} plan?">
-                                    @csrf @method('DELETE')
-                                    <button class="btn small danger">Delete</button>
-                                </form>
-                            @else
-                                <button type="button" class="btn small" disabled style="opacity: 0.4; cursor: not-allowed;" title="Cannot delete: {{ $row->members_count }} member(s) on this plan">Delete</button>
-                            @endif
+                            <form id="plan-form-{{ $row->id }}" method="POST" action="{{ route('plans.update', $row) }}">
+                                @csrf @method('PATCH')
+                            </form>
+                            <div class="inline" style="justify-content: flex-end;">
+                                <button form="plan-form-{{ $row->id }}" class="btn small">Save</button>
+                                {{-- Members keep the plan's name, so a plan in use cannot go. --}}
+                                @if ($row->members_count === 0)
+                                    <form method="POST" action="{{ route('plans.destroy', $row) }}" data-confirm="Delete the {{ $row->name }} plan?">
+                                        @csrf @method('DELETE')
+                                        <button class="btn small danger">Delete</button>
+                                    </form>
+                                @else
+                                    <button type="button" class="btn small" disabled style="opacity: 0.4; cursor: not-allowed;" title="Cannot delete: {{ $row->members_count }} member(s) on this plan">Delete</button>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @endforeach
