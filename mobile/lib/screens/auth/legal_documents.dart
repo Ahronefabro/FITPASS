@@ -174,13 +174,13 @@ void showLegalSheet(BuildContext context, LegalDocument document) {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Last updated: $_lastUpdated',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFF8A8A8A),
                     fontSize: 12,
                   ),

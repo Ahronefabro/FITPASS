@@ -42,6 +42,21 @@ class MemberController extends Controller
             return redirect($request->fullUrlWithQuery(['page' => $members->lastPage()]));
         }
 
+        // Member counts per plan in one query: ['Regular' => 12, 'Student' => 5, ...]
+        $planCounts = Member::whereIn('plan', $plans)
+            ->selectRaw('plan, COUNT(*) as total')
+            ->groupBy('plan')
+            ->pluck('total', 'plan');
+
+        // Keep the old card titles for the built-in plans; any new plan uses its own name.
+        $labels = ['Student' => 'Students', 'Senior' => 'Seniors'];
+
+        $planCards = collect($plans)->map(fn ($name) => [
+            $labels[$name] ?? $name,
+            $planCounts[$name] ?? 0,
+            'On the '.strtolower($name).' rate',
+        ])->all();
+
         return view('staff.members', [
             'members' => $members,
             'filter' => $filter,
@@ -50,13 +65,10 @@ class MemberController extends Controller
             'plans' => $plans,
             'methods' => Payment::METHODS,
             'prices' => Plan::prices(),
-            'cards' => [
+            'cards' => array_merge([
                 ['Total Members', Member::count(), Member::whereDate('joined_at', '>=', now()->startOfMonth())->count().' joined this month'],
                 ['Active', Member::active()->count(), Member::expiringSoon()->count().' expiring soon'],
-                ['Regular', Member::where('plan', 'Regular')->count(), 'On the regular rate'],
-                ['Students', Member::where('plan', 'Student')->count(), 'On the student rate'],
-                ['Seniors', Member::where('plan', 'Senior')->count(), 'On the senior rate'],
-            ],
+            ], $planCards),
         ]);
     }
 

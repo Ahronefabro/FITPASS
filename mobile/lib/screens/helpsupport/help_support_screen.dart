@@ -54,8 +54,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   void initState() {
     super.initState();
     PackageInfo.fromPlatform().then((info) {
-      if (mounted)
+      if (mounted) {
         setState(() => _version = '${info.version} (${info.buildNumber})');
+      }
     });
   }
 
